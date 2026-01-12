@@ -1,0 +1,3 @@
+[submodule "csms/steve"]
+	path = csms/steve
+	url = https://github.com/steve-community/steve.git
