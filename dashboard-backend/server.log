@@ -1,0 +1,9 @@
+nohup: ignoring input
+[dotenv@17.2.3] injecting env (5) from ../.env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+Charger routes loaded successfully
+Starting server initialization...
+Calling loginToSteve...
+Starting login to STEVE...
+Failed to login to STEVE: Request failed with status code 302
+Login completed successfully
+🚀 Dashboard backend running on port 3000

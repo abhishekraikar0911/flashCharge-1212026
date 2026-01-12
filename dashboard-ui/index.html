@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>flashCharge</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div class="container">
+
+    <!-- CHARGING VIEW -->
+    <div id="charging-view">
+      <h2>Charging Control</h2>
+
+      <div class="status-section">
+        <div>Status: <span id="status">--</span></div>
+      </div>
+
+      <div class="gauge-section">
+        <div class="ev-gauge">
+          <svg viewBox="0 0 200 200">
+            <defs>
+              <linearGradient id="socGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#3b82f6"/>
+                <stop offset="100%" stop-color="#10b981"/>
+              </linearGradient>
+            </defs>
+
+            <circle
+              cx="100"
+              cy="100"
+              r="85"
+              stroke="rgba(255,255,255,0.1)"
+              stroke-width="14"
+              fill="none"
+            />
+
+            <circle
+              id="soc-ring"
+              cx="100"
+              cy="100"
+              r="85"
+              stroke="url(#socGradient)"
+              stroke-width="14"
+              fill="none"
+              stroke-linecap="round"
+              stroke-dasharray="534"
+              stroke-dashoffset="534"
+              transform="rotate(-90 100 100)"
+            />
+          </svg>
+
+          <div class="ev-gauge-center">
+            <div id="soc-value">--</div>
+            <span>%</span>
+            <div class="soc-text">State of Charge</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls-section">
+        <button id="start-btn" class="ev-btn start">
+          ⚡ START CHARGING
+        </button>
+
+        <button id="stop-btn" class="ev-btn stop">
+          ⛔ STOP CHARGING
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
+

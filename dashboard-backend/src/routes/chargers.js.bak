@@ -1,0 +1,155 @@
+const express = require("express");
+const router = express.Router();
+const { client, webClient } = require("../services/steveClient");
+
+router.get("/", async (req, res) => {
+  try {
+    const response = await client.get("/api/v1/chargeboxes");
+    res.json(response.data);
+  } catch (err) {
+    console.error("Chargeboxes error:", err.message);
+    res.status(500).json({ error: "Failed to fetch chargeboxes" });
+  }
+});
+
+// Get transactions
+/*
+router.get("/transactions", async (req, res) => {
+  try {
+    const response = await client.get("/api/v1/transactions");
+    res.json(response.data);
+  } catch (err) {
+    console.error("Transactions error:", err.message);
+    res.status(500).json({ error: "Failed to fetch transactions" });
+  }
+});
+*/
+
+// Start transaction
+/*
+router.post("/:chargeBoxId/start", async (req, res) => {
+  try {
+    const { chargeBoxId } = req.params;
+    const { connectorId = 1, idTag } = req.body;
+
+    // First, get the form page to get CSRF token
+    const formResponse = await webClient.get("/manager/operations/v1.5/RemoteStartTransaction");
+    const formHtml = formResponse.data;
+    const csrfMatch = formHtml.match(/name="_csrf" value="([^"]+)"/);
+    const csrfToken = csrfMatch ? csrfMatch[1] : null;
+
+    // Prepare form data
+    const formData = new URLSearchParams();
+    formData.append('chargePointSelectList[0].chargeBoxId', chargeBoxId);
+    formData.append('connectorId', connectorId.toString());
+    formData.append('idTag', idTag || 'default');
+    if (csrfToken) {
+      formData.append('_csrf', csrfToken);
+    }
+
+    const response = await webClient.post("/manager/operations/v1.5/RemoteStartTransaction", formData, {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      maxRedirects: 0,
+    });
+
+    if (response.status === 302) {
+      res.json({ success: true, message: "Remote start initiated" });
+    } else {
+      res.status(500).json({ error: "Failed to start transaction" });
+    }
+  } catch (err) {
+    console.error("Start transaction error:", err.message);
+    res.status(500).json({ error: "Failed to start transaction" });
+  }
+});
+*/
+
+// Stop transaction
+/*
+router.post("/:chargeBoxId/stop", async (req, res) => {
+  try {
+    const { chargeBoxId } = req.params;
+    const { transactionId } = req.body;
+
+    // First, get the form page to get CSRF token
+    const formResponse = await webClient.get("/manager/operations/v1.5/RemoteStopTransaction");
+    const formHtml = formResponse.data;
+    const csrfMatch = formHtml.match(/name="_csrf" value="([^"]+)"/);
+    const csrfToken = csrfMatch ? csrfMatch[1] : null;
+
+    // Prepare form data
+    const formData = new URLSearchParams();
+    formData.append('chargePointSelectList[0].chargeBoxId', chargeBoxId);
+    if (transactionId) {
+      formData.append('transactionId', transactionId.toString());
+    }
+    if (csrfToken) {
+      formData.append('_csrf', csrfToken);
+    }
+
+    const response = await webClient.post("/manager/operations/v1.5/RemoteStopTransaction", formData, {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      maxRedirects: 0,
+    });
+
+    if (response.status === 302) {
+      res.json({ success: true, message: "Remote stop initiated" });
+    } else {
+      res.status(500).json({ error: "Failed to stop transaction" });
+    }
+  } catch (err) {
+    console.error("Stop transaction error:", err.message);
+    res.status(500).json({ error: "Failed to stop transaction" });
+  }
+});
+*/
+
+// Get current status including SOC
+/*
+router.get("/status/:chargeBoxId", async (req, res) => {
+  try {
+    const { chargeBoxId } = req.params;
+
+    // Get latest transactions for this charger
+    const transactionsResponse = await client.get("/api/v1/transactions", {
+      params: {
+        chargeBoxId: chargeBoxId,
+        pageSize: 1,
+        sort: "startTimestamp",
+        order: "desc"
+      }
+    });
+    const transactions = transactionsResponse.data;
+
+    let status = "Idle";
+    let soc = "--";
+    let current = "--";
+
+    if (transactions.length > 0) {
+      const latest = transactions[0];
+      status = latest.stopTimestamp ? "Stopped" : "Charging";
+
+      // For SOC, we would parse meter values here
+      // For now, mock SOC based on transaction
+      soc = latest.stopTimestamp ? "100%" : "75%"; // Mock values
+      current = latest.stopTimestamp ? "--" : "16A"; // Mock current
+    }
+
+    res.json({
+      chargeBoxId,
+      status,
+      soc,
+      current,
+      lastTransaction: transactions[0] || null
+    });
+  } catch (err) {
+    console.error("Status error:", err.message);
+    res.status(500).json({ error: "Failed to get status" });
+  }
+});
+*/
+

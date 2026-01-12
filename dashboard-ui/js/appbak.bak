@@ -1,0 +1,104 @@
+const API = "http://103.174.148.201:3000";
+const currentChargerId = "RIVOT_100A_01";
+
+// -------------------
+// Live SOC
+// -------------------
+async function refreshSOC() {
+  try {
+    const res = await fetch(
+      `${API}/api/chargers/${currentChargerId}/soc`
+    );
+    const data = await res.json();
+
+    console.log("SOC API response:", data);
+
+    const socEl = document.getElementById("soc");
+    if (!socEl) return;
+
+    socEl.textContent =
+      data.soc !== null ? `${data.soc} %` : "-- %";
+  } catch (err) {
+    console.error("SOC fetch error:", err);
+  }
+}
+
+// -------------------
+// Live status refresh
+// -------------------
+async function refresh() {
+  try {
+    const res = await fetch(
+      `${API}/api/chargers/${currentChargerId}/active`
+    );
+    const data = await res.json();
+
+    if (data.active) {
+      document.getElementById("status").textContent = "Charging";
+      document.getElementById("start-btn").style.display = "none";
+      document.getElementById("stop-btn").style.display = "block";
+    } else {
+      document.getElementById("status").textContent = "Idle";
+      document.getElementById("start-btn").style.display = "block";
+      document.getElementById("stop-btn").style.display = "none";
+    }
+  } catch (e) {
+    console.error("Refresh error", e);
+  }
+}
+
+// -------------------
+// Start Charging
+// -------------------
+async function startCharging() {
+  try {
+    const res = await fetch(
+      `${API}/api/chargers/${currentChargerId}/start`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          connectorId: 1,
+          idTag: "TEST_TAG",
+        }),
+      }
+    );
+
+    const result = await res.json();
+    console.log("Start result:", result);
+  } catch (e) {
+    console.error("Start failed", e);
+  }
+}
+
+// -------------------
+// Stop Charging
+// -------------------
+async function stopCharging() {
+  try {
+    const res = await fetch(
+      `${API}/api/chargers/${currentChargerId}/stop`,
+      { method: "POST" }
+    );
+
+    const result = await res.json();
+    console.log("Stop result:", result);
+  } catch (e) {
+    console.error("Stop failed", e);
+  }
+}
+
+// -------------------
+// Init
+// -------------------
+window.onload = () => {
+  refresh();
+  refreshSOC();
+
+  setInterval(refresh, 2000);
+  setInterval(refreshSOC, 5000);
+
+  document.getElementById("start-btn").onclick = startCharging;
+  document.getElementById("stop-btn").onclick = stopCharging;
+};
+

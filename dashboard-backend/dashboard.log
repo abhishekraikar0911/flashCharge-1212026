@@ -1,0 +1,5 @@
+nohup: ignoring input
+[dotenv@17.2.3] injecting env (5) from ../.env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+Charger routes loaded successfully
+🚀 Dashboard backend running on port 3000
+Server started successfully
