@@ -10,39 +10,25 @@
 
 This repository contains a complete EV charging management system. Start here to understand the project:
 
-### 🏗️ **1. [ARCHITECTURE.md](ARCHITECTURE.md)** - System Design & Overview
-**For:** Understanding how the system works  
-**Contains:**
-- System architecture overview
-- Component descriptions (SteVe, Backend, UI)
-- Technology stack
-- Database schema
-- API endpoints reference
-- Data flow examples
-- Communication protocols
-
-**Read this first if you're new to the project.**
-
----
-
-### 🔍 **2. [ARCHITECTURE_WITH_REVIEW.md](ARCHITECTURE_WITH_REVIEW.md)** - System Design & Code Review (COMBINED)
+### 🔍 **1. [ARCHITECTURE_WITH_REVIEW.md](ARCHITECTURE_WITH_REVIEW.md)** - System Design & Code Review
 **For:** Complete system understanding + code quality assessment  
 **Contains:**
-- System architecture & design
+- System architecture & design (5-layer diagram)
 - Technology stack details
-- Component architecture
+- Component architecture (UI, Backend, SteVe, Database)
 - **Code quality assessment** (scores & findings)
 - **Security audit** of all components
+- Charger firmware & OCPP protocol explanation
 - Database schema
 - API endpoints
 - Deployment architecture
 - Setup instructions
 
-**Read this to understand both how the system works AND its code quality.**
+**Read this first - it's the main reference for the entire system.**
 
 ---
 
-### 🐳 **3. [DOCKER_PLAN.md](DOCKER_PLAN.md)** - Containerization & Deployment
+### 🐳 **2. [DOCKER_PLAN.md](DOCKER_PLAN.md)** - Containerization & Deployment
 **For:** Setting up and deploying the system  
 **Contains:**
 - Current vs proposed architecture
@@ -102,13 +88,13 @@ mysql                 # Running locally
 
 **How Each Component Actually Runs Right Now:**
 
-| Component | Status | Running As |
-|-----------|--------|-----------|
-| **Dashboard UI** | ✅ Live | Static HTML/CSS/JS via Nginx |
-| **Dashboard Backend** | ✅ Live | Node.js server process |
-| **SteVe OCPP** | ✅ Live | Java Spring Boot application |
-| **MySQL Database** | ✅ Live | MySQL 8.0 database |
-| **Process Manager** | Using PM2 | `pm2 start all` manages processes |
+| Component | Status | Running As | Issues |
+|-----------|--------|-----------|--------|
+| **Dashboard UI** | 🔴 Broken | Static HTML/CSS/JS via Nginx | Hardcoded IDs, not configurable, crashes on errors |
+| **Dashboard Backend** | 🔴 Insecure | Node.js server (port 3000) | NO auth, hardcoded secrets, no validation |
+| **SteVe OCPP** | ✅ Live | Java Spring Boot (port 8080) | ✅ Working well, production-ready |
+| **MySQL Database** | ✅ Live | MySQL 8.0 (port 3306) | ✅ Good schema |
+| **Process Manager** | ✅ Working | PM2 | Manages processes but not integrated |
 
 ### Check What's Currently Running
 
@@ -132,27 +118,241 @@ pm2 monit
 
 ### Start Services Manually (If Needed)
 
+⚠️ **CRITICAL: Before running, read the "Critical Issues" section below**
+
 ```bash
-# Terminal 1: Dashboard Backend
+# Terminal 1: Dashboard Backend (port 3000)
 cd /opt/ev-platform/dashboard-backend
 npm install
 node src/server.js
 
-# Terminal 2: SteVe OCPP Server
+# Terminal 2: SteVe OCPP Server (port 8080)
 cd /opt/ev-platform/csms/steve
-# Either:
-./mvnw spring-boot:run    # Development
-# Or:
-java -jar target/steve-*.war  # Compiled
+# Option A: Development mode
+./mvnw spring-boot:run
+# Option B: Production (compiled WAR)
+java -jar target/steve-*.war
 
-# Terminal 3: Dashboard UI (already running via Nginx)
-# Static files are served, no process needed
+# Terminal 3: MySQL
+# Already running on port 3306
 
-# Check access
+# Terminal 4: UI (via Nginx)
+# Already running, serves /opt/ev-platform/dashboard-ui/
+
+# Access:
 # UI:      http://localhost
 # Backend: http://localhost:3000
 # SteVe:   http://localhost:8080/steve
+# MySQL:   localhost:3306 (steve/steve)
 ```
+
+---
+
+## 🚨 CRITICAL ISSUES - NOT PRODUCTION READY
+
+**This system has SECURITY and INTEGRATION ISSUES. Do not use in production.**
+
+### Issue 1: Dashboard UI is Hardcoded 🔴
+
+**File:** `/opt/ev-platform/dashboard-ui/js/app.js`
+
+```javascript
+const API = "http://103.174.148.201:3000";    // ❌ Hardcoded IP
+const chargerId = "RIVOT_100A_01";             // ❌ Only works for 1 charger
+let selectedConnectorId = 1;                    // ❌ Can't select connector
+```
+
+**Problem:** System can ONLY charge one specific charger (RIVOT_100A_01).  
+**Impact:** 🔴 **BLOCKS ALL PRODUCTION USE**
+
+**Fix Required:**
+- [ ] Remove hardcoded charger ID
+- [ ] Create charger selector UI
+- [ ] Accept charger from query params or props
+- [ ] Support multiple chargers
+
+**Estimated Time:** 3-5 hours
+
+---
+
+### Issue 2: Backend Has NO Authentication 🔴
+
+**File:** `/opt/ev-platform/dashboard-backend/src/routes/chargers.js`
+
+```bash
+# ANYONE can do this:
+curl -X POST http://localhost:3000/api/chargers/start \
+  -H "Content-Type: application/json" \
+  -d '{"chargePointId":"ANY_CHARGER","connectorId":1}'
+```
+
+**Problem:** Zero authentication. No user verification.  
+**Impact:** 🔴 **SECURITY BREACH - Anyone controls chargers**
+
+**Fix Required:**
+- [ ] Add JWT authentication middleware
+- [ ] Require valid token on all endpoints
+- [ ] Implement user roles (admin, user)
+- [ ] Add authorization checks
+
+**Estimated Time:** 8-10 hours
+
+---
+
+### Issue 3: Backend Has Hardcoded Secrets 🔴
+
+**File:** `/opt/ev-platform/dashboard-backend/src/services/steveService.js`
+
+```javascript
+const steveApiClient = axios.create({
+  baseURL: "http://localhost:8080/steve",
+  headers: {
+    "STEVE-API-KEY": "my-secret-api-key",  // ❌ Visible in GitHub!
+  },
+});
+```
+
+**Problem:** API key hardcoded in source code and committed to GitHub.  
+**Impact:** 🔴 **CREDENTIALS COMPROMISED**
+
+**Fix Required:**
+- [ ] Move API key to `.env` file
+- [ ] Load from environment variables
+- [ ] Regenerate API key in SteVe
+- [ ] Add `.env` to `.gitignore`
+
+**Estimated Time:** 1 hour
+
+---
+
+### Issue 4: Backend Has NO Input Validation 🔴
+
+**Problem:** Accepts any charger ID, connector ID, transaction ID without validation.  
+**Impact:** 🟠 **Data integrity risk, injection attacks possible**
+
+**Fix Required:**
+- [ ] Add express-validator middleware
+- [ ] Validate charger ID format
+- [ ] Validate connector ID (number 1-N)
+- [ ] Validate transaction ID
+- [ ] Validate idTag format
+
+**Estimated Time:** 6-8 hours
+
+---
+
+### Issue 5: Backend Has NO Rate Limiting 🟠
+
+**Problem:** Anyone can hammer API endpoints.  
+**Impact:** 🟠 **DDoS vulnerability**
+
+**Fix Required:**
+- [ ] Add express-rate-limit middleware
+- [ ] Limit requests per IP/user
+- [ ] Implement exponential backoff
+
+**Estimated Time:** 2 hours
+
+---
+
+### Issue 6: Backend CORS Too Permissive 🟠
+
+```javascript
+app.use(cors());  // ❌ Allows ANY origin
+```
+
+**Fix Required:**
+- [ ] Whitelist specific origins (localhost, your domain)
+- [ ] Disallow credentials from untrusted sources
+
+**Estimated Time:** 1 hour
+
+---
+
+### Issue 7: UI Has No Error Handling 🟠
+
+**Problem:** If API returns error, UI crashes with blank screen.  
+**Impact:** 🟠 **Poor user experience**
+
+**Fix Required:**
+- [ ] Add error boundary component
+- [ ] Display error messages
+- [ ] Add retry buttons
+- [ ] Handle network timeouts
+
+**Estimated Time:** 4-6 hours
+
+---
+
+### Issue 8: 5-Second Polling is Inefficient 🟠
+
+**Problem:** UI polls every 5 seconds instead of real-time updates.  
+**Impact:** 🟠 **Delays, excessive API calls, poor performance**
+
+**Fix Required:**
+- [ ] Implement WebSocket connection
+- [ ] Real-time status updates
+- [ ] Reduce server load by 90%
+
+**Estimated Time:** 6-8 hours
+
+---
+
+## 📋 Production Readiness Checklist
+
+Before using this system in production:
+
+### Security (CRITICAL)
+- [ ] ✅ Move all secrets to `.env` file
+- [ ] ✅ Implement JWT authentication
+- [ ] ✅ Add input validation on all endpoints
+- [ ] ✅ Restrict CORS to trusted origins
+- [ ] ✅ Enable HTTPS/TLS
+- [ ] ✅ Set up rate limiting
+- [ ] ✅ Add request logging for audit trail
+
+### Integration (CRITICAL)
+- [ ] ✅ Make UI configurable (remove hardcoded IDs)
+- [ ] ✅ Add error handling throughout
+- [ ] ✅ Implement real-time updates (WebSocket)
+- [ ] ✅ Add loading states
+
+### Testing (HIGH)
+- [ ] ✅ Unit tests for critical paths
+- [ ] ✅ Integration tests for UI↔Backend
+- [ ] ✅ Security tests (penetration testing)
+- [ ] ✅ Load testing
+
+### Operations (HIGH)
+- [ ] ✅ Add comprehensive logging
+- [ ] ✅ Set up monitoring/alerts
+- [ ] ✅ Document deployment process
+- [ ] ✅ Create disaster recovery plan
+
+---
+
+## 💡 Recommended Approach
+
+### Week 1: Security Hardening
+- Phase 1A: Move secrets to `.env` (1h)
+- Phase 1B: Add JWT authentication (8h)
+- Phase 1C: Add input validation (6h)
+- Phase 1D: Add rate limiting (2h)
+- Total: ~17 hours
+
+### Week 2: UI Integration & Real-time
+- Phase 2A: Remove hardcoded values (5h)
+- Phase 2B: Add error handling (4h)
+- Phase 2C: Implement WebSocket (6h)
+- Total: ~15 hours
+
+### Week 3: Testing & Ops
+- Phase 3A: Unit & integration tests (8h)
+- Phase 3B: Security audit (4h)
+- Phase 3C: Performance optimization (3h)
+- Total: ~15 hours
+
+**Total effort: ~47 hours (2 developers, 3 weeks)**
 
 ---
 
@@ -339,15 +539,23 @@ KEY:
 
 ## 📊 Current Status
 
-| Component | Status | Quality |
-|-----------|--------|---------|
-| **SteVe OCPP Server** | ✅ Production-Ready | 9.2/10 |
-| **Dashboard Backend** | ⚠️ Ready (needs hardening) | 5.8/10 |
-| **Dashboard UI** | ✅ Production-Ready | 8/10 |
-| **Database** | ✅ Well-Designed | 9/10 |
-| **Documentation** | ✅ Complete | 9/10 |
+| Component | Status | Quality | Notes |
+|-----------|--------|---------|-------|
+| **SteVe OCPP Server** | ✅ Production-Ready | 9.2/10 | Open source, well-maintained, OCPP compliant |
+| **Dashboard Backend** | 🔴 MVP (Critical Security Issues) | 4.5/10 | NO auth, hardcoded secrets, no validation - **NOT FOR PRODUCTION** |
+| **Dashboard UI** | 🔴 Incomplete (Not Integrated) | 3.5/10 | Hardcoded IDs, no error handling, broken integration |
+| **Database** | ✅ Well-Designed | 9/10 | Schema is solid and normalized |
+| **System Integration** | ❌ Broken | 3/10 | UI ↔ Backend chain incomplete, insecure |
+| **Documentation** | ✅ Complete | 9/10 | Comprehensive and accurate |
 
-**Overall:** 📊 **Ready for Development, Needs Hardening for Production**
+**Overall Status:** 🚨 **MVP STAGE - CRITICAL ISSUES FOUND**  
+**Main Issues:**
+- ❌ Custom components (UI, Backend) built but incomplete
+- ❌ No authentication on API endpoints (security risk)
+- ❌ UI not properly integrated with Backend
+- ❌ Multiple hardcoded values make system unusable
+- ✅ SteVe (open source) works well
+- **Estimated work to production:** 40-50 hours
 
 ---
 
@@ -449,30 +657,32 @@ kubectl logs <pod-name>
 ```
 README.md (You are here)
     ↓
-    ├─→ ARCHITECTURE_WITH_REVIEW.md
-    │   ├─ System design & architecture
-    │   ├─ All 3 components explained
+    ├─→ ARCHITECTURE_WITH_REVIEW.md (PRIMARY REFERENCE)
+    │   ├─ 5-layer system architecture diagram
+    │   ├─ All 3 components explained in detail
+    │   ├─ Charger firmware & OCPP protocol
     │   ├─ Code quality scores & assessment
-    │   ├─ Security audit findings
+    │   ├─ Security audit findings (8 critical issues)
     │   ├─ Database schema
     │   ├─ API endpoints
+    │   ├─ Communication flows
     │   └─ Deployment guides
     │
-    ├─→ PRODUCTION_READINESS.md
-    │   ├─ Readiness assessment
-    │   ├─ Security checklist
-    │   ├─ Performance tuning
-    │   ├─ Monitoring setup
-    │   ├─ Deployment timeline
-    │   └─ Risk mitigation
+    ├─→ PRODUCTION_READINESS.md (DEPLOYMENT CHECKLIST)
+    │   ├─ Component readiness assessment
+    │   ├─ Security hardening checklist
+    │   ├─ Performance tuning guide
+    │   ├─ Monitoring & alerting setup
+    │   ├─ Deployment timeline (2-3 weeks)
+    │   └─ Risk mitigation plan
     │
-    └─→ DOCKER_PLAN.md
-        ├─ Current vs proposed
-        ├─ Dockerfile setup
-        ├─ docker-compose.yml
-        ├─ Environment config
-        ├─ Deployment steps
-        └─ Troubleshooting
+    └─→ DOCKER_PLAN.md (FUTURE CONTAINERIZATION)
+        ├─ Current vs proposed architecture
+        ├─ Dockerfile for each component
+        ├─ docker-compose.yml template
+        ├─ Environment configuration
+        ├─ Step-by-step deployment
+        └─ Troubleshooting guide
 ```
 
 ---
@@ -550,11 +760,11 @@ For questions about:
 
 ## 📋 Quick Links
 
-| Document | Purpose | Audience |
-|----------|---------|----------|
-| [ARCHITECTURE_WITH_REVIEW.md](ARCHITECTURE_WITH_REVIEW.md) | System design + code review | Everyone |
-| [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) | Readiness checklist | Managers/DevOps |
-| [DOCKER_PLAN.md](DOCKER_PLAN.md) | Deployment guide | DevOps/Developers |
+| Document | Purpose | Start Here |
+|----------|---------|-----------|
+| [ARCHITECTURE_WITH_REVIEW.md](ARCHITECTURE_WITH_REVIEW.md) | System design + code review (PRIMARY REFERENCE) | ✅ Yes - read this first |
+| [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) | Deployment readiness checklist | Before production |
+| [DOCKER_PLAN.md](DOCKER_PLAN.md) | Docker containerization guide | After understanding architecture |
 
 ---
 
