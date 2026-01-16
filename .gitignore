@@ -39,3 +39,34 @@
 
 # debug information files
 *.dwo
+# Build output
+target/
+dist/
+build/
+
+# Dependencies  
+node_modules/
+vendor/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment secrets
+.env
+.env.local
+.env.*.local
+
+# Backup/Temp
+backupcsms/
+*.backup
+*.bak
+tmp/
+temp/

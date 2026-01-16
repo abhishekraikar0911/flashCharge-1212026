@@ -5,7 +5,7 @@ const { steveApiClient } = require("../services/steveService");
 // GET ALL TRANSACTIONS
 router.get("/", async (req, res) => {
   try {
-    const response = await steveApiClient.get("/transactions");
+    const response = await steveApiClient.get("/api/v1/transactions");
     res.json(response.data);
   } catch (err) {
     console.error("SteVe API error:", err.message);

@@ -47,7 +47,7 @@ function updateGauge(soc) {
   const offset = circumference - (value / 100) * circumference;
 
   ring.style.strokeDashoffset = offset;
-  socValueEl.innerText = value ? Math.round(value) : "--";
+  socValueEl.innerText = value ? parseFloat(value).toFixed(2) : "--";
 
   // Glow intensity based on SOC
   ring.style.filter = `drop-shadow(0 0 ${10 + value / 4}px rgba(59,130,246,0.9))`;
