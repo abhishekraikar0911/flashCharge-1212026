@@ -10,51 +10,34 @@
 
 This repository contains a complete EV charging management system. Start here to understand the project:
 
-### 🔍 **1. [ARCHITECTURE_WITH_REVIEW.md](ARCHITECTURE_WITH_REVIEW.md)** - System Design & Code Review
-**For:** Complete system understanding + code quality assessment  
+### 🔍 **1. [ARCHITECTURE_WITH_REVIEW.md](ARCHITECTURE_WITH_REVIEW.md)** - System Design & How It Works
+**For:** Understanding the system architecture and how components work together  
 **Contains:**
 - System architecture & design (5-layer diagram)
 - Technology stack details
-- Component architecture (UI, Backend, SteVe, Database)
-- **Code quality assessment** (scores & findings)
-- **Security audit** of all components
+- All 3 components explained (UI, Backend, SteVe OCPP, Database)
+- How components communicate with each other
 - Charger firmware & OCPP protocol explanation
 - Database schema
 - API endpoints
-- Deployment architecture
-- Setup instructions
+- Code quality assessment & findings
+- Setup & running instructions
 
-**Read this first - it's the main reference for the entire system.**
-
----
-
-### 🐳 **2. [DOCKER_PLAN.md](DOCKER_PLAN.md)** - Containerization & Deployment
-**For:** Setting up and deploying the system  
-**Contains:**
-- Current vs proposed architecture
-- Docker configuration for all 3 components
-- docker-compose.yml template
-- Environment setup
-- Deployment instructions
-- Health checks & monitoring
-- Troubleshooting guide
-
-**Follow this to containerize and run the application.**
+**Read this first to understand how the system works.**
 
 ---
 
-### 📋 **4. [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md)** - Deployment Checklist
-**For:** Ensuring production readiness  
+### 📋 **2. [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md)** - Issues & Fixes Needed
+**For:** Understanding what needs to be fixed before production use  
 **Contains:**
+- Critical security issues identified (8 major issues)
 - Component-by-component assessment
+- What needs to be fixed in UI, Backend, and integration
+- Estimated time to fix each issue
 - Security hardening checklist
-- Reliability requirements
-- Monitoring setup
-- Performance optimization
-- Deployment timeline
-- Risk assessment
+- Implementation timeline (2-3 weeks)
 
-**Use this as a deployment readiness checklist.**
+**Read this to understand what work is needed.**
 
 ---
 
@@ -356,26 +339,7 @@ Before using this system in production:
 
 ---
 
-## 🐳 Future Plan: Docker Migration
-
-**See [DOCKER_PLAN.md](DOCKER_PLAN.md) for complete details**
-
-Currently running standalone. **Planned future state** with Docker:
-
-```bash
-# FUTURE: All services in Docker containers
-docker-compose up --build
-
-# Will provide:
-# - Dashboard UI:  http://localhost
-# - Backend API:   http://localhost:3000
-# - SteVe Admin:   http://localhost:8080/steve
-# - MySQL:         localhost:3306
-```
-
----
-
-## 📖 Quick Reference
+##  Quick Reference
 
 ### For Code Review
 
@@ -611,78 +575,28 @@ KEY:
 
 ---
 
-## 📈 Deployment Options
-
-### Option 1: Current Setup (Standalone) ✅ CURRENT
-```bash
-# How it's running now
-pm2 start all          # Manages: Backend, SteVe, UI
-pm2 list              # Check status
-pm2 logs              # View logs
-pm2 stop all          # Stop services
-pm2 restart all       # Restart services
-```
-**Best for:** Development, testing  
-**Status:** ✅ Currently in use
-
----
-
-### Option 2: Docker Compose (Planned) 🐳 FUTURE
-```bash
-# Future: Move to containerization
-docker-compose up --build
-docker-compose ps
-docker-compose logs -f
-```
-**Best for:** Production-like environment  
-**Status:** ⚠️ Planned, see DOCKER_PLAN.md for details  
-**Timeline:** 8-10 days to implement
-
----
-
-### Option 3: Kubernetes (Enterprise) 🚀 FUTURE
-```bash
-# For large-scale deployment
-kubectl apply -f csms/steve/k8s/
-kubectl get pods
-kubectl logs <pod-name>
-```
-**Best for:** Enterprise, auto-scaling  
-**Status:** ⚠️ Manifests available, not yet implemented
-
----
-
-## 📖 Documentation Map
+## � Documentation Map
 
 ```
 README.md (You are here)
     ↓
     ├─→ ARCHITECTURE_WITH_REVIEW.md (PRIMARY REFERENCE)
     │   ├─ 5-layer system architecture diagram
-    │   ├─ All 3 components explained in detail
+    │   ├─ How UI ↔ Backend ↔ SteVe communicate
+    │   ├─ Database schema & relationships
+    │   ├─ API endpoints & examples
     │   ├─ Charger firmware & OCPP protocol
     │   ├─ Code quality scores & assessment
-    │   ├─ Security audit findings (8 critical issues)
-    │   ├─ Database schema
-    │   ├─ API endpoints
-    │   ├─ Communication flows
-    │   └─ Deployment guides
+    │   ├─ Security findings
+    │   └─ Setup & running instructions
     │
-    ├─→ PRODUCTION_READINESS.md (DEPLOYMENT CHECKLIST)
-    │   ├─ Component readiness assessment
-    │   ├─ Security hardening checklist
-    │   ├─ Performance tuning guide
-    │   ├─ Monitoring & alerting setup
-    │   ├─ Deployment timeline (2-3 weeks)
-    │   └─ Risk mitigation plan
-    │
-    └─→ DOCKER_PLAN.md (FUTURE CONTAINERIZATION)
-        ├─ Current vs proposed architecture
-        ├─ Dockerfile for each component
-        ├─ docker-compose.yml template
-        ├─ Environment configuration
-        ├─ Step-by-step deployment
-        └─ Troubleshooting guide
+    └─→ PRODUCTION_READINESS.md
+        ├─ Critical issues found (8 issues)
+        ├─ What needs to be fixed
+        ├─ Estimated time per fix
+        ├─ Security hardening steps
+        ├─ Implementation timeline
+        └─ How to fix each issue
 ```
 
 ---
@@ -760,37 +674,10 @@ For questions about:
 
 ## 📋 Quick Links
 
-| Document | Purpose | Start Here |
-|----------|---------|-----------|
-| [ARCHITECTURE_WITH_REVIEW.md](ARCHITECTURE_WITH_REVIEW.md) | System design + code review (PRIMARY REFERENCE) | ✅ Yes - read this first |
-| [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) | Deployment readiness checklist | Before production |
-| [DOCKER_PLAN.md](DOCKER_PLAN.md) | Docker containerization guide | After understanding architecture |
-
----
-
-## ✅ Quick Checklist
-
-- [ ] Read ARCHITECTURE.md
-- [ ] Review CODE_REVIEW.md
-- [ ] Follow DOCKER_PLAN.md
-- [ ] Check PRODUCTION_READINESS.md
-- [ ] Set up `.env`
-- [ ] Run `docker-compose up`
-- [ ] Verify all services healthy
-- [ ] Run initial tests
-- [ ] Deploy to production
-
----
-
-## 📊 Project Statistics
-
-- **Total Lines of Code:** ~2,500+
-- **Main Components:** 3 (UI, Backend, OCPP Server)
-- **Database Tables:** 8+
-- **API Endpoints:** 10+
-- **Documentation Pages:** 4
-- **Tech Stack:** 8+ technologies
-- **Support:** OCPP 1.2-1.6
+| Document | Purpose |
+|----------|---------|
+| [ARCHITECTURE_WITH_REVIEW.md](ARCHITECTURE_WITH_REVIEW.md) | How the system works & components communicate (PRIMARY) |
+| [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) | Issues found & how to fix them |
 
 ---
 
