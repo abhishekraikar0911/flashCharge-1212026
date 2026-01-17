@@ -1,4 +1,4 @@
-const API = "http://103.174.148.201:3000";
+const API = "/api";
 const chargerId = "RIVOT_100A_01";
 
 let selectedConnectorId = 1; // Fixed to connector 1
