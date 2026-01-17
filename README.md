@@ -28,22 +28,7 @@ This repository contains a complete EV charging management system. Start here to
 
 ---
 
-### 🐳 **2. [DOCKER_PLAN.md](DOCKER_PLAN.md)** - Containerization & Deployment
-**For:** Setting up and deploying the system  
-**Contains:**
-- Current vs proposed architecture
-- Docker configuration for all 3 components
-- docker-compose.yml template
-- Environment setup
-- Deployment instructions
-- Health checks & monitoring
-- Troubleshooting guide
-
-**Follow this to containerize and run the application.**
-
----
-
-### 📋 **4. [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md)** - Deployment Checklist
+### � **2. [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md)** - Deployment Checklist
 **For:** Ensuring production readiness  
 **Contains:**
 - Component-by-component assessment
@@ -356,35 +341,7 @@ Before using this system in production:
 
 ---
 
-## 🐳 Future Plan: Docker Migration
-
-**See [DOCKER_PLAN.md](DOCKER_PLAN.md) for complete details**
-
-Currently running standalone. **Planned future state** with Docker:
-
-```bash
-# FUTURE: All services in Docker containers
-docker-compose up --build
-
-# Will provide:
-# - Dashboard UI:  http://localhost
-# - Backend API:   http://localhost:3000
-# - SteVe Admin:   http://localhost:8080/steve
-# - MySQL:         localhost:3306
-```
-
----
-
-## 📖 Quick Reference
-
-### For Code Review
-
-```bash
-# Read documentation in this order:
-less ARCHITECTURE_WITH_REVIEW.md    # System + code quality
-less PRODUCTION_READINESS.md         # What needs to be done
-less DOCKER_PLAN.md                  # How to containerize
-```
+##  Quick Reference
 
 ### For Development (Current Setup)
 
@@ -402,15 +359,6 @@ cd /opt/ev-platform/steve-csms/steve
 # http://localhost:3000
 ```
 
-### For Docker Migration (Future)
-
-See [DOCKER_PLAN.md](DOCKER_PLAN.md) for:
-- Step-by-step containerization
-- Dockerfile for each component
-- docker-compose.yml template
-- Environment setup
-- Deployment procedures
-
 ---
 
 ## 📁 Project Structure
@@ -421,13 +369,11 @@ See [DOCKER_PLAN.md](DOCKER_PLAN.md) for:
 ├── README.md                          ← YOU ARE HERE
 ├── ARCHITECTURE_WITH_REVIEW.md        ← System design + code review
 ├── PRODUCTION_READINESS.md            ← Readiness checklist
-├── DOCKER_PLAN.md                     ← Future Docker setup
 │
 ├── steve-csms/steve/                  # SteVe OCPP Server (Java)
 │   ├── src/                           # Source code
 │   ├── target/steve.war               # ✅ Currently running this
 │   ├── pom.xml                        # Maven config
-│   ├── Dockerfile                     # Future: Docker image
 │   └── k8s/                          # Future: Kubernetes manifests
 │
 ├── flashCharge-backend/               # API Backend (Node.js)
@@ -635,8 +581,8 @@ docker-compose ps
 docker-compose logs -f
 ```
 **Best for:** Production-like environment  
-**Status:** ⚠️ Planned, see DOCKER_PLAN.md for details  
-**Timeline:** 8-10 days to implement
+**Status:** ⚠️ Not currently implemented
+**Timeline:** Future enhancement
 
 ---
 
@@ -675,13 +621,6 @@ README.md (You are here)
     │   ├─ Monitoring & alerting setup
     │   ├─ Deployment timeline (2-3 weeks)
     │   └─ Risk mitigation plan
-    │
-    └─→ DOCKER_PLAN.md (FUTURE CONTAINERIZATION)
-        ├─ Current vs proposed architecture
-        ├─ Dockerfile for each component
-        ├─ docker-compose.yml template
-        ├─ Environment configuration
-        ├─ Step-by-step deployment
         └─ Troubleshooting guide
 ```
 
@@ -701,24 +640,22 @@ README.md (You are here)
 ### 👨‍💻 **For Backend Developers**
 1. Read: ARCHITECTURE_WITH_REVIEW.md → Full
 2. Review: Code quality issues section
-3. Follow: DOCKER_PLAN.md → Setup
 
-**Time:** ~2 hours
+**Time:** ~1.5 hours
 
 ---
 
 ### 🎨 **For Frontend Developers**
 1. Read: ARCHITECTURE_WITH_REVIEW.md → UI section
 2. Review: Code quality findings for frontend
-3. Run: `docker-compose up` → Start coding
+3. Run: `npm start` in flashCharge-backend → Start coding
 
 **Time:** ~1 hour
 
 ---
 
 ### 🔧 **For DevOps/SRE**
-1. Read: DOCKER_PLAN.md → Complete
-2. Review: PRODUCTION_READINESS.md → Full
+1. Read: PRODUCTION_READINESS.md → Full
 3. Prepare: Infrastructure & deployment
 
 **Time:** ~3 hours
@@ -754,7 +691,6 @@ README.md (You are here)
 For questions about:
 - **Architecture & Code:** See ARCHITECTURE_WITH_REVIEW.md
 - **Deployment & Readiness:** See PRODUCTION_READINESS.md
-- **Docker Setup:** See DOCKER_PLAN.md
 
 ---
 
@@ -764,18 +700,17 @@ For questions about:
 |----------|---------|-----------|
 | [ARCHITECTURE_WITH_REVIEW.md](ARCHITECTURE_WITH_REVIEW.md) | System design + code review (PRIMARY REFERENCE) | ✅ Yes - read this first |
 | [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) | Deployment readiness checklist | Before production |
-| [DOCKER_PLAN.md](DOCKER_PLAN.md) | Docker containerization guide | After understanding architecture |
 
 ---
 
 ## ✅ Quick Checklist
 
-- [ ] Read ARCHITECTURE.md
-- [ ] Review CODE_REVIEW.md
-- [ ] Follow DOCKER_PLAN.md
+- [ ] Read ARCHITECTURE_WITH_REVIEW.md
+- [ ] Review code quality findings
 - [ ] Check PRODUCTION_READINESS.md
-- [ ] Set up `.env`
-- [ ] Run `docker-compose up`
+- [ ] Set up development environment
+- [ ] Run backend: `npm start`
+- [ ] Run SteVe OCPP: `./mvnw spring-boot:run`
 - [ ] Verify all services healthy
 - [ ] Run initial tests
 - [ ] Deploy to production
@@ -788,7 +723,7 @@ For questions about:
 - **Main Components:** 3 (UI, Backend, OCPP Server)
 - **Database Tables:** 8+
 - **API Endpoints:** 10+
-- **Documentation Pages:** 4
+- **Documentation Pages:** 2
 - **Tech Stack:** 8+ technologies
 - **Support:** OCPP 1.2-1.6
 
