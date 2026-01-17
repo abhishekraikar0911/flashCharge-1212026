@@ -211,13 +211,13 @@ Layer 5: Physical Equipment
 
 ## Component Architecture
 
-### 1. Dashboard UI (`dashboard-ui/`)
+### 1. flashCharge UI (`flashCharge-ui/`)
 
 The user-facing web interface for EV charging management.
 
 **Structure:**
 ```
-dashboard-ui/
+flashCharge-ui/
 ├── index.html          # Main HTML structure (80 lines)
 ├── style.css           # Complete UI styling (619 lines)
 ├── js/
@@ -264,13 +264,13 @@ dashboard-ui/
 
 ---
 
-### 2. Dashboard Backend (`dashboard-backend/`)
+### 2. flashCharge Backend (`flashCharge-backend/`)
 
 The API middleware that bridges the web frontend to SteVe.
 
 **Structure:**
 ```
-dashboard-backend/
+flashCharge-backend/
 ├── package.json                      # Dependencies (express, mysql2, axios)
 ├── src/
 │   ├── server.js                    # Express app setup (23 lines)
@@ -354,13 +354,13 @@ dashboard-backend/
 
 ---
 
-### 3. SteVe OCPP Server (`csms/steve/`)
+### 3. SteVe OCPP Server (`steve-csms/steve/`)
 
 Complete OCPP charge point management system.
 
 **Structure:**
 ```
-csms/steve/
+steve-csms/steve/
 ├── pom.xml                          # Maven configuration
 ├── Dockerfile                       # Container image
 ├── src/
@@ -631,7 +631,7 @@ Scenario: Start Charging
 🔴 **Backend Security Issues (Must Fix Before Production):**
 
 1. **Hardcoded Credentials** (CRITICAL)
-   - Location: `dashboard-backend/src/services/db.js`
+   - Location: `flashCharge-backend/src/services/db.js`
    - Issue: Database credentials hardcoded in source
    - Fix: Use environment variables via `.env`
 
@@ -709,14 +709,14 @@ UI Updates:
 
 **Code References:**
 ```javascript
-// Frontend: dashboard-ui/js/app.js
+// Frontend: flashCharge-ui/js/app.js
 async function refreshStatus() {
   const res = await fetch(`${API}/api/chargers/${chargerId}/connectors/${selectedConnectorId}`);
   const data = await res.json();
   document.getElementById("status").innerText = data.status;
 }
 
-// Backend: dashboard-backend/src/routes/chargers.js
+// Backend: flashCharge-backend/src/routes/chargers.js
 router.get("/:id/connectors/:connectorId", async (req, res) => {
   const [rows] = await db.query(`
     SELECT connector_id, COALESCE(cs.status, 'Unavailable') AS status
@@ -956,17 +956,17 @@ Response:
 version: '3.8'
 
 services:
-  dashboard-ui:
+  flashCharge-ui:
     image: nginx:latest
     ports:
       - "80:80"
     volumes:
-      - ./dashboard-ui:/usr/share/nginx/html:ro
+      - ./flashCharge-ui:/usr/share/nginx/html:ro
     depends_on:
-      - dashboard-backend
+      - flashCharge-backend
 
-  dashboard-backend:
-    build: ./dashboard-backend
+  flashCharge-backend:
+    build: ./flashCharge-backend
     ports:
       - "3000:3000"
     environment:
@@ -981,7 +981,7 @@ services:
     restart: unless-stopped
 
   steve:
-    build: ./csms/steve
+    build: ./steve-csms/steve
     ports:
       - "8080:8080"
       - "8443:8443"
@@ -1041,12 +1041,12 @@ docker-compose up
 docker run -d -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=steve -p 3306:3306 mysql:8.0
 
 # 2. Start SteVe
-cd csms/steve
+cd steve-csms/steve
 ./mvnw clean package
 java -jar target/steve-*.war
 
 # 3. Start Backend
-cd dashboard-backend
+cd flashCharge-backend
 npm install
 npm start
 

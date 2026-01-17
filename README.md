@@ -10,34 +10,51 @@
 
 This repository contains a complete EV charging management system. Start here to understand the project:
 
-### 🔍 **1. [ARCHITECTURE_WITH_REVIEW.md](ARCHITECTURE_WITH_REVIEW.md)** - System Design & How It Works
-**For:** Understanding the system architecture and how components work together  
+### 🔍 **1. [ARCHITECTURE_WITH_REVIEW.md](ARCHITECTURE_WITH_REVIEW.md)** - System Design & Code Review
+**For:** Complete system understanding + code quality assessment  
 **Contains:**
 - System architecture & design (5-layer diagram)
 - Technology stack details
-- All 3 components explained (UI, Backend, SteVe OCPP, Database)
-- How components communicate with each other
+- Component architecture (UI, Backend, SteVe, Database)
+- **Code quality assessment** (scores & findings)
+- **Security audit** of all components
 - Charger firmware & OCPP protocol explanation
 - Database schema
 - API endpoints
-- Code quality assessment & findings
-- Setup & running instructions
+- Deployment architecture
+- Setup instructions
 
-**Read this first to understand how the system works.**
+**Read this first - it's the main reference for the entire system.**
 
 ---
 
-### 📋 **2. [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md)** - Issues & Fixes Needed
-**For:** Understanding what needs to be fixed before production use  
+### 🐳 **2. [DOCKER_PLAN.md](DOCKER_PLAN.md)** - Containerization & Deployment
+**For:** Setting up and deploying the system  
 **Contains:**
-- Critical security issues identified (8 major issues)
-- Component-by-component assessment
-- What needs to be fixed in UI, Backend, and integration
-- Estimated time to fix each issue
-- Security hardening checklist
-- Implementation timeline (2-3 weeks)
+- Current vs proposed architecture
+- Docker configuration for all 3 components
+- docker-compose.yml template
+- Environment setup
+- Deployment instructions
+- Health checks & monitoring
+- Troubleshooting guide
 
-**Read this to understand what work is needed.**
+**Follow this to containerize and run the application.**
+
+---
+
+### 📋 **4. [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md)** - Deployment Checklist
+**For:** Ensuring production readiness  
+**Contains:**
+- Component-by-component assessment
+- Security hardening checklist
+- Reliability requirements
+- Monitoring setup
+- Performance optimization
+- Deployment timeline
+- Risk assessment
+
+**Use this as a deployment readiness checklist.**
 
 ---
 
@@ -48,18 +65,18 @@ This repository contains a complete EV charging management system. Start here to
 The platform is **currently running with standalone processes**, NOT Docker:
 
 ```bash
-# CURRENT: Dashboard UI - Static Files (Nginx)
-nginx  # Serves /opt/ev-platform/dashboard-ui/
+# CURRENT: flashCharge UI - Static Files (Nginx)
+nginx  # Serves /opt/ev-platform/flashCharge-ui/
 # Files: index.html, style.css, js/app.js
 # Access: http://localhost:80
 
-# CURRENT: Dashboard Backend - Node.js Standalone
-node src/server.js    # From /opt/ev-platform/dashboard-backend/
+# CURRENT: flashCharge Backend - Node.js Standalone
+node src/server.js    # From /opt/ev-platform/flashCharge-backend/
 # Runs: Express.js on port 3000
 # Access: http://localhost:3000
 
 # CURRENT: SteVe OCPP - Java Standalone  
-java -jar steve.war   # From /opt/ev-platform/csms/steve/target/
+java -jar steve.war   # From /opt/ev-platform/steve-csms/steve/target/
 # Runs: Spring Boot on port 8080
 # Access: http://localhost:8080/steve
 
@@ -73,8 +90,8 @@ mysql                 # Running locally
 
 | Component | Status | Running As | Issues |
 |-----------|--------|-----------|--------|
-| **Dashboard UI** | 🔴 Broken | Static HTML/CSS/JS via Nginx | Hardcoded IDs, not configurable, crashes on errors |
-| **Dashboard Backend** | 🔴 Insecure | Node.js server (port 3000) | NO auth, hardcoded secrets, no validation |
+| **flashCharge UI** | 🔴 Broken | Static HTML/CSS/JS via Nginx | Hardcoded IDs, not configurable, crashes on errors |
+| **flashCharge Backend** | 🔴 Insecure | Node.js server (port 3000) | NO auth, hardcoded secrets, no validation |
 | **SteVe OCPP** | ✅ Live | Java Spring Boot (port 8080) | ✅ Working well, production-ready |
 | **MySQL Database** | ✅ Live | MySQL 8.0 (port 3306) | ✅ Good schema |
 | **Process Manager** | ✅ Working | PM2 | Manages processes but not integrated |
@@ -92,8 +109,8 @@ mysql -u steve -p steve                  # Test MySQL
 
 # View live logs
 pm2 logs
-pm2 logs dashboard-backend
-pm2 logs steve
+pm2 logs flashCharge-backend
+pm2 logs steve-csms
 
 # Monitor processes
 pm2 monit
@@ -104,13 +121,13 @@ pm2 monit
 ⚠️ **CRITICAL: Before running, read the "Critical Issues" section below**
 
 ```bash
-# Terminal 1: Dashboard Backend (port 3000)
-cd /opt/ev-platform/dashboard-backend
+# Terminal 1: flashCharge Backend (port 3000)
+cd /opt/ev-platform/flashCharge-backend
 npm install
 node src/server.js
 
 # Terminal 2: SteVe OCPP Server (port 8080)
-cd /opt/ev-platform/csms/steve
+cd /opt/ev-platform/steve-csms/steve
 # Option A: Development mode
 ./mvnw spring-boot:run
 # Option B: Production (compiled WAR)
@@ -120,7 +137,7 @@ java -jar target/steve-*.war
 # Already running on port 3306
 
 # Terminal 4: UI (via Nginx)
-# Already running, serves /opt/ev-platform/dashboard-ui/
+# Already running, serves /opt/ev-platform/flashCharge-ui/
 
 # Access:
 # UI:      http://localhost
@@ -135,9 +152,9 @@ java -jar target/steve-*.war
 
 **This system has SECURITY and INTEGRATION ISSUES. Do not use in production.**
 
-### Issue 1: Dashboard UI is Hardcoded 🔴
+### Issue 1: flashCharge UI is Hardcoded 🔴
 
-**File:** `/opt/ev-platform/dashboard-ui/js/app.js`
+**File:** `/opt/ev-platform/flashCharge-ui/js/app.js`
 
 ```javascript
 const API = "http://103.174.148.201:3000";    // ❌ Hardcoded IP
@@ -160,7 +177,7 @@ let selectedConnectorId = 1;                    // ❌ Can't select connector
 
 ### Issue 2: Backend Has NO Authentication 🔴
 
-**File:** `/opt/ev-platform/dashboard-backend/src/routes/chargers.js`
+**File:** `/opt/ev-platform/flashCharge-backend/src/routes/chargers.js`
 
 ```bash
 # ANYONE can do this:
@@ -184,7 +201,7 @@ curl -X POST http://localhost:3000/api/chargers/start \
 
 ### Issue 3: Backend Has Hardcoded Secrets 🔴
 
-**File:** `/opt/ev-platform/dashboard-backend/src/services/steveService.js`
+**File:** `/opt/ev-platform/flashCharge-backend/src/services/steveService.js`
 
 ```javascript
 const steveApiClient = axios.create({
@@ -339,7 +356,26 @@ Before using this system in production:
 
 ---
 
-##  Quick Reference
+## 🐳 Future Plan: Docker Migration
+
+**See [DOCKER_PLAN.md](DOCKER_PLAN.md) for complete details**
+
+Currently running standalone. **Planned future state** with Docker:
+
+```bash
+# FUTURE: All services in Docker containers
+docker-compose up --build
+
+# Will provide:
+# - Dashboard UI:  http://localhost
+# - Backend API:   http://localhost:3000
+# - SteVe Admin:   http://localhost:8080/steve
+# - MySQL:         localhost:3306
+```
+
+---
+
+## 📖 Quick Reference
 
 ### For Code Review
 
@@ -354,12 +390,12 @@ less DOCKER_PLAN.md                  # How to containerize
 
 ```bash
 # Terminal 1: Backend API
-cd /opt/ev-platform/dashboard-backend
+cd /opt/ev-platform/flashCharge-backend
 npm install
 npm start  # or: node src/server.js
 
 # Terminal 2: SteVe (if needed)
-cd /opt/ev-platform/csms/steve
+cd /opt/ev-platform/steve-csms/steve
 ./mvnw spring-boot:run
 
 # Access dashboard UI in browser:
@@ -387,14 +423,14 @@ See [DOCKER_PLAN.md](DOCKER_PLAN.md) for:
 ├── PRODUCTION_READINESS.md            ← Readiness checklist
 ├── DOCKER_PLAN.md                     ← Future Docker setup
 │
-├── csms/steve/                        # SteVe OCPP Server (Java)
+├── steve-csms/steve/                  # SteVe OCPP Server (Java)
 │   ├── src/                           # Source code
 │   ├── target/steve.war               # ✅ Currently running this
 │   ├── pom.xml                        # Maven config
 │   ├── Dockerfile                     # Future: Docker image
 │   └── k8s/                          # Future: Kubernetes manifests
 │
-├── dashboard-backend/                 # API Backend (Node.js)
+├── flashCharge-backend/               # API Backend (Node.js)
 │   ├── src/
 │   │   ├── server.js                 # ✅ Currently running this
 │   │   ├── routes/
@@ -402,7 +438,7 @@ See [DOCKER_PLAN.md](DOCKER_PLAN.md) for:
 │   ├── package.json
 │   └── Dockerfile                     # Future: Docker image
 │
-├── dashboard-ui/                      # Web UI (HTML/CSS/JS)
+├── flashCharge-ui/                    # Web UI (HTML/CSS/JS)
 │   ├── index.html                    # ✅ Currently served via Nginx
 │   ├── style.css
 │   ├── js/
@@ -423,7 +459,7 @@ KEY:
 
 ## 🏢 System Components
 
-### 1. **Dashboard UI** (Frontend)
+### 1. **flashCharge UI** (Frontend)
 - Modern web interface
 - Real-time charging monitoring
 - Start/Stop charging controls
@@ -436,7 +472,7 @@ KEY:
 
 ---
 
-### 2. **Dashboard Backend** (API)
+### 2. **flashCharge Backend** (API)
 - REST API for UI and integrations
 - Database query interface
 - SteVe API client
@@ -506,8 +542,8 @@ KEY:
 | Component | Status | Quality | Notes |
 |-----------|--------|---------|-------|
 | **SteVe OCPP Server** | ✅ Production-Ready | 9.2/10 | Open source, well-maintained, OCPP compliant |
-| **Dashboard Backend** | 🔴 MVP (Critical Security Issues) | 4.5/10 | NO auth, hardcoded secrets, no validation - **NOT FOR PRODUCTION** |
-| **Dashboard UI** | 🔴 Incomplete (Not Integrated) | 3.5/10 | Hardcoded IDs, no error handling, broken integration |
+| **flashCharge Backend** | 🔴 MVP (Critical Security Issues) | 4.5/10 | NO auth, hardcoded secrets, no validation - **NOT FOR PRODUCTION** |
+| **flashCharge UI** | 🔴 Incomplete (Not Integrated) | 3.5/10 | Hardcoded IDs, no error handling, broken integration |
 | **Database** | ✅ Well-Designed | 9/10 | Schema is solid and normalized |
 | **System Integration** | ❌ Broken | 3/10 | UI ↔ Backend chain incomplete, insecure |
 | **Documentation** | ✅ Complete | 9/10 | Comprehensive and accurate |
@@ -575,28 +611,78 @@ KEY:
 
 ---
 
-## � Documentation Map
+## 📈 Deployment Options
+
+### Option 1: Current Setup (Standalone) ✅ CURRENT
+```bash
+# How it's running now
+pm2 start all          # Manages: Backend, SteVe, UI
+pm2 list              # Check status
+pm2 logs              # View logs
+pm2 stop all          # Stop services
+pm2 restart all       # Restart services
+```
+**Best for:** Development, testing  
+**Status:** ✅ Currently in use
+
+---
+
+### Option 2: Docker Compose (Planned) 🐳 FUTURE
+```bash
+# Future: Move to containerization
+docker-compose up --build
+docker-compose ps
+docker-compose logs -f
+```
+**Best for:** Production-like environment  
+**Status:** ⚠️ Planned, see DOCKER_PLAN.md for details  
+**Timeline:** 8-10 days to implement
+
+---
+
+### Option 3: Kubernetes (Enterprise) 🚀 FUTURE
+```bash
+# For large-scale deployment
+kubectl apply -f steve-csms/steve/k8s/
+kubectl get pods
+kubectl logs <pod-name>
+```
+**Best for:** Enterprise, auto-scaling  
+**Status:** ⚠️ Manifests available, not yet implemented
+
+---
+
+## 📖 Documentation Map
 
 ```
 README.md (You are here)
     ↓
     ├─→ ARCHITECTURE_WITH_REVIEW.md (PRIMARY REFERENCE)
     │   ├─ 5-layer system architecture diagram
-    │   ├─ How UI ↔ Backend ↔ SteVe communicate
-    │   ├─ Database schema & relationships
-    │   ├─ API endpoints & examples
+    │   ├─ All 3 components explained in detail
     │   ├─ Charger firmware & OCPP protocol
     │   ├─ Code quality scores & assessment
-    │   ├─ Security findings
-    │   └─ Setup & running instructions
+    │   ├─ Security audit findings (8 critical issues)
+    │   ├─ Database schema
+    │   ├─ API endpoints
+    │   ├─ Communication flows
+    │   └─ Deployment guides
     │
-    └─→ PRODUCTION_READINESS.md
-        ├─ Critical issues found (8 issues)
-        ├─ What needs to be fixed
-        ├─ Estimated time per fix
-        ├─ Security hardening steps
-        ├─ Implementation timeline
-        └─ How to fix each issue
+    ├─→ PRODUCTION_READINESS.md (DEPLOYMENT CHECKLIST)
+    │   ├─ Component readiness assessment
+    │   ├─ Security hardening checklist
+    │   ├─ Performance tuning guide
+    │   ├─ Monitoring & alerting setup
+    │   ├─ Deployment timeline (2-3 weeks)
+    │   └─ Risk mitigation plan
+    │
+    └─→ DOCKER_PLAN.md (FUTURE CONTAINERIZATION)
+        ├─ Current vs proposed architecture
+        ├─ Dockerfile for each component
+        ├─ docker-compose.yml template
+        ├─ Environment configuration
+        ├─ Step-by-step deployment
+        └─ Troubleshooting guide
 ```
 
 ---
@@ -674,10 +760,37 @@ For questions about:
 
 ## 📋 Quick Links
 
-| Document | Purpose |
-|----------|---------|
-| [ARCHITECTURE_WITH_REVIEW.md](ARCHITECTURE_WITH_REVIEW.md) | How the system works & components communicate (PRIMARY) |
-| [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) | Issues found & how to fix them |
+| Document | Purpose | Start Here |
+|----------|---------|-----------|
+| [ARCHITECTURE_WITH_REVIEW.md](ARCHITECTURE_WITH_REVIEW.md) | System design + code review (PRIMARY REFERENCE) | ✅ Yes - read this first |
+| [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) | Deployment readiness checklist | Before production |
+| [DOCKER_PLAN.md](DOCKER_PLAN.md) | Docker containerization guide | After understanding architecture |
+
+---
+
+## ✅ Quick Checklist
+
+- [ ] Read ARCHITECTURE.md
+- [ ] Review CODE_REVIEW.md
+- [ ] Follow DOCKER_PLAN.md
+- [ ] Check PRODUCTION_READINESS.md
+- [ ] Set up `.env`
+- [ ] Run `docker-compose up`
+- [ ] Verify all services healthy
+- [ ] Run initial tests
+- [ ] Deploy to production
+
+---
+
+## 📊 Project Statistics
+
+- **Total Lines of Code:** ~2,500+
+- **Main Components:** 3 (UI, Backend, OCPP Server)
+- **Database Tables:** 8+
+- **API Endpoints:** 10+
+- **Documentation Pages:** 4
+- **Tech Stack:** 8+ technologies
+- **Support:** OCPP 1.2-1.6
 
 ---
 
@@ -709,5 +822,7 @@ See LICENSE.txt for details
 **Last Updated:** January 16, 2026  
 **Version:** 1.0.0  
 **Status:** Ready for Review
+
+**Recent Updates:** Directory structure renamed - `dashboard-backend/` → `flashCharge-backend/`, `dashboard-ui/` → `flashCharge-ui/`, `csms/steve/` → `steve-csms/steve/`. All documentation updated accordingly.
 
 🚀 **Ready to get started? Pick a document above and dive in!**

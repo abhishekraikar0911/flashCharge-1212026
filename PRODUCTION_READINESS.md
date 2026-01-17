@@ -13,13 +13,13 @@
 | Component | Status | Risk Level | Can UI Team Work? |
 |-----------|--------|-----------|------------------|
 | **SteVe OCPP Server** | ✅ Production-Ready | **LOW** | ✅ YES |
-| **Dashboard Backend** | ⚠️ Needs Hardening | **MEDIUM** | ⚠️ YES (with fixes) |
+| **flashCharge Backend** | ⚠️ Needs Hardening | **MEDIUM** | ⚠️ YES (with fixes) |
 | **Database Schema** | ✅ Well-Designed | **LOW** | ✅ YES |
 | **Deployment** | ⚠️ Partially Ready | **MEDIUM** | ⚠️ Needs work |
 | **Security** | 🔴 Critical Issues | **HIGH** | ❌ NO (fix first) |
 | **Monitoring** | ⚠️ Minimal | **MEDIUM** | ⚠️ Add before prod |
 
-**Recommendation:** UI team can start development NOW with dashboard backend as-is, but:
+**Recommendation:** UI team can start development NOW with flashCharge backend as-is, but:
 - 🔴 Security issues MUST be fixed before production deployment
 - ⚠️ Add monitoring and error handling before going live
 - ✅ SteVe is already production-grade
@@ -30,7 +30,7 @@
 
 ---
 
-## 1. SteVe OCPP Server (`csms/steve/`)
+## 1. SteVe OCPP Server (`steve-csms/steve/`)
 
 ### Overall Status: ✅ PRODUCTION-READY
 
@@ -153,7 +153,7 @@ environment:
 
 ---
 
-## 2. Dashboard Backend (`dashboard-backend/`)
+## 2. flashCharge Backend (`flashCharge-backend/`)
 
 ### Overall Status: ⚠️ NEEDS HARDENING
 
@@ -933,7 +933,7 @@ describe('Charger Routes', () => {
 docker-compose up
 
 # UI dev server on localhost:3000
-cd dashboard-ui
+cd flashCharge-ui
 # Or use any static server
 
 # Backend API available at:
@@ -1014,7 +1014,7 @@ app.use(morgan('combined'));
 ### Backend Team Should Watch:
 
 ```
-dashboard-backend/
+flashCharge-backend/
 ├── src/server.js          ← Add global error handler
 ├── src/services/db.js     ← Add connection monitoring
 ├── src/services/steveService.js  ← Add timeouts & retries
@@ -1027,7 +1027,7 @@ dashboard-backend/
 ❌ Don't modify backend code
 ❌ Don't modify database schema
 ❌ Don't modify docker-compose.yml
-✅ Only modify dashboard-ui/
+✅ Only modify flashCharge-ui/
 ```
 
 ---
