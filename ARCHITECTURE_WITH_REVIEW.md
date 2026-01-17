@@ -211,7 +211,7 @@ Layer 5: Physical Equipment
 
 ## Component Architecture
 
-### 1. flashCharge UI (`flashCharge-ui/`)
+### 1. Dashboard UI (`flashCharge-ui/`)
 
 The user-facing web interface for EV charging management.
 
@@ -264,7 +264,7 @@ flashCharge-ui/
 
 ---
 
-### 2. flashCharge Backend (`flashCharge-backend/`)
+### 2. Dashboard Backend (`flashCharge-backend/`)
 
 The API middleware that bridges the web frontend to SteVe.
 

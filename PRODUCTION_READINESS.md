@@ -13,13 +13,13 @@
 | Component | Status | Risk Level | Can UI Team Work? |
 |-----------|--------|-----------|------------------|
 | **SteVe OCPP Server** | ✅ Production-Ready | **LOW** | ✅ YES |
-| **flashCharge Backend** | ⚠️ Needs Hardening | **MEDIUM** | ⚠️ YES (with fixes) |
+| **Dashboard Backend** | ⚠️ Needs Hardening | **MEDIUM** | ⚠️ YES (with fixes) |
 | **Database Schema** | ✅ Well-Designed | **LOW** | ✅ YES |
 | **Deployment** | ⚠️ Partially Ready | **MEDIUM** | ⚠️ Needs work |
 | **Security** | 🔴 Critical Issues | **HIGH** | ❌ NO (fix first) |
 | **Monitoring** | ⚠️ Minimal | **MEDIUM** | ⚠️ Add before prod |
 
-**Recommendation:** UI team can start development NOW with flashCharge backend as-is, but:
+**Recommendation:** UI team can start development NOW with dashboard backend as-is, but:
 - 🔴 Security issues MUST be fixed before production deployment
 - ⚠️ Add monitoring and error handling before going live
 - ✅ SteVe is already production-grade
@@ -153,7 +153,7 @@ environment:
 
 ---
 
-## 2. flashCharge Backend (`flashCharge-backend/`)
+## 2. Dashboard Backend (`flashCharge-backend/`)
 
 ### Overall Status: ⚠️ NEEDS HARDENING
 
@@ -1027,7 +1027,7 @@ flashCharge-backend/
 ❌ Don't modify backend code
 ❌ Don't modify database schema
 ❌ Don't modify docker-compose.yml
-✅ Only modify flashCharge-ui/
+✅ Only modify flashCharge-backend/
 ```
 
 ---
@@ -1056,12 +1056,12 @@ flashCharge-backend/
 ## Final Assessment
 
 | Aspect | Status | Confidence |
-|--------|--------|-----------|
-| **Can UI team work?** | ✅ YES | 95% |
-| **Is backend ready?** | ⚠️ PARTIAL | 65% |
-| **Security ready?** | 🔴 NO | 20% |
-| **Production ready?** | 🔴 NO | 30% |
-| **Can ship in 2 weeks?** | ⚠️ Maybe | 50% |
+|--------|--------|----------- |
+| **Can UI team work?**    | ✅ YES     | 95% |
+| **Is backend ready?**    | ⚠️ PARTIAL | 65% |
+| **Security ready?**      | 🔴 NO      | 20% |
+| **Production ready?**    | 🔴 NO      | 30% |
+| **Can ship in 2 weeks?** | ⚠️ Maybe   | 50% |
 
 **Time to full production readiness:** 2-3 weeks
 
