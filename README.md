@@ -1,8 +1,30 @@
 # flashCharge - EV Charging Management Platform
 
+
+
 **Version:** 1.0.0  
-**Status:** Production-Ready  
-**Last Updated:** January 16, 2026
+**Status:**  development stage  
+**Last Updated:** January 17, 2026
+
+# flashCharge - EV Charging Management Platform
+
+**flashCharge** is a modern, open-source platform for managing electric vehicle charging stations. It provides:
+- 🚗 Real-time charger monitoring & control
+- 🔒 Secure, role-based access (admin/user)
+- 📊 Transaction & energy usage tracking
+- ⚡ OCPP 1.6J protocol support (SteVe server)
+- 🌐 Web dashboard (UI) & REST API backend
+
+**Quick Start:**
+1. Start backend: `cd flashCharge-backend && npm install && npm start`
+2. Start SteVe OCPP: `cd steve-csms/steve && ./mvnw spring-boot:run`
+3. Open UI: [http://localhost](http://localhost)
+
+**Docs:**
+- [ARCHITECTURE_WITH_REVIEW.md](ARCHITECTURE_WITH_REVIEW.md) – System design, code review, API
+- [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) – Deployment checklist, security, ops
+
+---
 
 ---
 
