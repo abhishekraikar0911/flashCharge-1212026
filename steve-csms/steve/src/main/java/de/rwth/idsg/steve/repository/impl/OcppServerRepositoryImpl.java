@@ -298,6 +298,19 @@ public class OcppServerRepositoryImpl implements OcppServerRepository {
         }
     }
 
+    @Override
+    public void insertDataTransfer(String chargeBoxId, String vendorId, String messageId, String data) {
+        try {
+            ctx.execute(
+                "INSERT INTO data_transfer (charge_box_id, vendor_id, message_id, data, received_at) VALUES (?, ?, ?, ?, NOW())",
+                chargeBoxId, vendorId, messageId, data
+            );
+            log.debug("Stored DataTransfer from {} with messageId {}", chargeBoxId, messageId);
+        } catch (Exception e) {
+            log.error("Failed to store DataTransfer: {}", e.getMessage());
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------

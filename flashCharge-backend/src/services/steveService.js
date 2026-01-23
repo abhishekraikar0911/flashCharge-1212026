@@ -1,10 +1,10 @@
+require('dotenv').config();
 const axios = require("axios");
 
-// Axios instance for SteVe API
 const steveApiClient = axios.create({
-  baseURL: "http://localhost:8080/steve",
+  baseURL: process.env.STEVE_API_URL || "http://localhost:8080/steve",
   headers: {
-    "STEVE-API-KEY": "my-secret-api-key",
+    "STEVE-API-KEY": process.env.STEVE_API_KEY,
     "Content-Type": "application/json",
   },
 });

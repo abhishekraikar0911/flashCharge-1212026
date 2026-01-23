@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
+const { authenticateToken } = require('../middleware/auth');
 const { steveApiClient } = require("../services/steveService");
 
 // GET ALL TRANSACTIONS
-router.get("/", async (req, res) => {
+router.get("/", authenticateToken, async (req, res) => {
   try {
     const response = await steveApiClient.get("/api/v1/transactions");
     res.json(response.data);

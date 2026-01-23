@@ -1,7 +1,7 @@
 const db = require("./db");
 
 async function getActiveTransaction(chargeBoxId) {
-  const [rows] = await db.execute(
+  const [rows] = await db.query(
     `
     SELECT
       t.transaction_pk AS transactionId,

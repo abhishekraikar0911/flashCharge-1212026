@@ -1,14 +1,36 @@
 const express = require("express");
 const router = express.Router();
+const { body, param, validationResult } = require('express-validator');
+const { authenticateToken, optionalAuth } = require('../middleware/auth');
 
 const steve = require("../services/steveService");
 const txService = require("../services/transactionService");
-const db = require("../services/db"); // IMPORTANT
+const db = require("../services/db");
 
-/* -------------------------------------------------
-   START CHARGING
--------------------------------------------------- */
-router.post("/:id/start", async (req, res) => {
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  next();
+};
+
+router.get("/list", async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT charge_box_id FROM charge_box ORDER BY charge_box_id');
+    res.json(rows.map(r => r.charge_box_id));
+  } catch (err) {
+    console.error("Charger list error:", err.message);
+    res.status(500).json({ error: "Failed to fetch chargers" });
+  }
+});
+
+router.post("/:id/start", authenticateToken, [
+  param('id').matches(/^[A-Za-z0-9_]+$/).withMessage('Invalid charger ID'),
+  body('connectorId').isInt({ min: 1, max: 10 }).withMessage('Invalid connector ID'),
+  body('idTag').isLength({ min: 1, max: 50 }).withMessage('Invalid ID tag'),
+  validate
+], async (req, res) => {
   try {
     const chargePointId = req.params.id;
     const { connectorId, idTag } = req.body;
@@ -26,10 +48,11 @@ router.post("/:id/start", async (req, res) => {
   }
 });
 
-/* -------------------------------------------------
-   STOP CHARGING
--------------------------------------------------- */
-router.post("/:id/stop", async (req, res) => {
+router.post("/:id/stop", authenticateToken, [
+  param('id').matches(/^[A-Za-z0-9_]+$/).withMessage('Invalid charger ID'),
+  body('transactionId').optional().isInt({ min: 1 }).withMessage('Invalid transaction ID'),
+  validate
+], async (req, res) => {
   try {
     const chargePointId = req.params.id;
     let transactionId = req.body?.transactionId;
@@ -50,10 +73,10 @@ router.post("/:id/stop", async (req, res) => {
   }
 });
 
-/* -------------------------------------------------
-   ACTIVE TRANSACTION (ONLY FOR START/STOP LOGIC)
--------------------------------------------------- */
-router.get("/:id/active", async (req, res) => {
+router.get("/:id/active", [
+  param('id').matches(/^[A-Za-z0-9_]+$/).withMessage('Invalid charger ID'),
+  validate
+], async (req, res) => {
   try {
     const active = await txService.getActiveTransaction(req.params.id);
 
@@ -70,10 +93,10 @@ router.get("/:id/active", async (req, res) => {
   }
 });
 
-/* -------------------------------------------------
-   CONNECTOR STATES (REAL OCPP STATUS)
--------------------------------------------------- */
-router.get("/:id/connectors", async (req, res) => {
+router.get("/:id/connectors", [
+  param('id').matches(/^[A-Za-z0-9_]+$/).withMessage('Invalid charger ID'),
+  validate
+], async (req, res) => {
   const chargeBoxId = req.params.id;
 
   try {
@@ -106,10 +129,10 @@ router.get("/:id/connectors", async (req, res) => {
   }
 });
 
-/* -------------------------------------------------
-   CHARGER HEALTH (ONLINE / OFFLINE)
--------------------------------------------------- */
-router.get("/:id/health", async (req, res) => {
+router.get("/:id/health", [
+  param('id').matches(/^[A-Za-z0-9_]+$/).withMessage('Invalid charger ID'),
+  validate
+], async (req, res) => {
   const chargeBoxId = req.params.id;
 
   try {
@@ -134,24 +157,210 @@ router.get("/:id/health", async (req, res) => {
 });
 
 /* -------------------------------------------------
-   SOC (State of Charge)
+   DEBUG: Check meter values
 -------------------------------------------------- */
-router.get("/:id/soc", async (req, res) => {
+router.get("/:id/debug-meters", async (req, res) => {
   const chargeBoxId = req.params.id;
 
   try {
     const [rows] = await db.query(`
-      SELECT cmv.value
+      SELECT 
+        cmv.measurand,
+        cmv.value,
+        cmv.value_timestamp
       FROM connector_meter_value cmv
       JOIN connector c ON c.connector_pk = cmv.connector_pk
       WHERE c.charge_box_id = ?
-        AND cmv.measurand = 'SoC'
+      ORDER BY cmv.value_timestamp DESC
+      LIMIT 20
+    `, [chargeBoxId]);
+
+    res.json({ count: rows.length, data: rows });
+  } catch (err) {
+    console.error("Debug meters error:", err.message);
+    res.status(500).json({ error: "Failed to fetch debug data" });
+  }
+});
+
+/* -------------------------------------------------
+   TEST ROUTE
+-------------------------------------------------- */
+router.get("/:id/test", async (req, res) => {
+  res.json({ message: "Test route works", chargeBoxId: req.params.id });
+});
+
+/* -------------------------------------------------
+   SOC (State of Charge)
+-------------------------------------------------- */
+router.get("/:id/soc", [
+  param('id').matches(/^[A-Za-z0-9_]+$/).withMessage('Invalid charger ID'),
+  validate
+], async (req, res) => {
+  const chargeBoxId = req.params.id;
+
+  try {
+    const [statusRows] = await db.query(`
+      SELECT cs.status
+      FROM connector c
+      LEFT JOIN connector_status cs ON cs.connector_pk = c.connector_pk
+      WHERE c.charge_box_id = ? AND c.connector_id = 1
+      ORDER BY cs.status_timestamp DESC
+      LIMIT 1
+    `, [chargeBoxId]);
+    
+    const status = statusRows.length ? statusRows[0].status : 'Available';
+    const isCharging = status === 'Charging';
+    const isConnected = ['Preparing', 'Finishing'].includes(status);
+
+    // Check for pre-charge data when gun is connected
+    if (isConnected) {
+      const [preChargeRows] = await db.query(`
+        SELECT data, received_at
+        FROM data_transfer
+        WHERE charge_box_id = ?
+          AND message_id = 'PreChargeData'
+          AND received_at >= DATE_SUB(NOW(), INTERVAL 2 HOUR)
+        ORDER BY received_at DESC
+        LIMIT 1
+      `, [chargeBoxId]);
+
+      if (preChargeRows.length > 0) {
+        const preChargeData = JSON.parse(preChargeRows[0].data);
+        const maxCurrent = preChargeData.maxCurrent || 0;
+        
+        let model = "NX-100 CLASSIC", maxRangeKm = 84;
+        if (maxCurrent >= 31 && maxCurrent <= 60) {
+          model = "NX-100 PRO";
+          maxRangeKm = 168;
+        } else if (maxCurrent >= 61) {
+          model = "NX-100 MAX";
+          maxRangeKm = 252;
+        }
+
+        const soc = preChargeData.soc || 0;
+        const currentRangeKm = ((maxRangeKm * soc) / 100).toFixed(1);
+
+        return res.json({ 
+          soc: parseFloat(soc.toFixed(2)),
+          voltage: `${parseFloat(preChargeData.voltage || 0).toFixed(1)} V`,
+          current: "0.0 A",
+          power: "0.00 kW",
+          energy: "0.00 Wh",
+          model,
+          currentRangeKm,
+          maxRangeKm,
+          isCharging: false,
+          dataSource: 'precharge'
+        });
+      }
+    }
+
+    if (!isCharging && !isConnected) {
+      return res.json({ 
+        soc: 0, 
+        voltage: "0.0 V",
+        current: "0.0 A",
+        power: "0.00 kW",
+        energy: "0.00 Wh",
+        model: "--",
+        currentRangeKm: "--",
+        maxRangeKm: "--",
+        isCharging: false
+      });
+    }
+
+    const timeWindow = isConnected ? 'INTERVAL 1 HOUR' : 'INTERVAL 5 MINUTE';
+    const [rows] = await db.query(`
+      SELECT 
+        cmv.measurand,
+        cmv.value,
+        cmv.value_timestamp
+      FROM connector_meter_value cmv
+      JOIN connector c ON c.connector_pk = cmv.connector_pk
+      WHERE c.charge_box_id = ?
+        AND cmv.measurand IN ('SoC', 'Voltage', 'Current.Import', 'Power.Active.Import')
+        AND cmv.value_timestamp >= DATE_SUB(NOW(), ${timeWindow})
+      ORDER BY cmv.value_timestamp DESC
+      LIMIT 10
+    `, [chargeBoxId]);
+
+    let soc = null, voltage = null, current = null, power = null;
+    
+    for (const row of rows) {
+      if (row.measurand === 'SoC' && soc === null) soc = parseFloat(row.value);
+      if (row.measurand === 'Voltage' && voltage === null) voltage = parseFloat(row.value).toFixed(1);
+      if (row.measurand === 'Current.Import' && current === null) current = parseFloat(row.value).toFixed(1);
+      if (row.measurand === 'Power.Active.Import' && power === null) power = (parseFloat(row.value) / 1000).toFixed(2);
+    }
+
+    let energy = 0;
+    if (isCharging) {
+      const [txRows] = await db.query(`
+        SELECT t.start_timestamp
+        FROM transaction t
+        JOIN connector c ON c.connector_pk = t.connector_pk
+        WHERE c.charge_box_id = ? AND t.stop_timestamp IS NULL
+        LIMIT 1
+      `, [chargeBoxId]);
+
+      if (txRows.length) {
+        const startTime = new Date(txRows[0].start_timestamp);
+        const durationHours = (Date.now() - startTime.getTime()) / (1000 * 60 * 60);
+        const avgPower = power ? parseFloat(power) : 0;
+        energy = (avgPower * durationHours * 1000).toFixed(2);
+      }
+    }
+
+    const [vehicleRows] = await db.query(`
+      SELECT cmv.value as currentOffered
+      FROM connector_meter_value cmv
+      JOIN connector c ON c.connector_pk = cmv.connector_pk
+      WHERE c.charge_box_id = ?
+        AND cmv.measurand = 'Current.Offered'
+        AND cmv.value_timestamp >= DATE_SUB(NOW(), ${timeWindow})
       ORDER BY cmv.value_timestamp DESC
       LIMIT 1
     `, [chargeBoxId]);
 
-    const soc = rows.length ? parseFloat(rows[0].value) : null;
-    res.json({ soc });
+    let model = "NX-100 CLASSIC", maxRangeKm = 84;
+    if (vehicleRows.length) {
+      const currentOffered = parseFloat(vehicleRows[0].currentOffered);
+      if (currentOffered >= 31 && currentOffered <= 60) {
+        model = "NX-100 PRO";
+        maxRangeKm = 168;
+      } else if (currentOffered >= 61) {
+        model = "NX-100 MAX";
+        maxRangeKm = 252;
+      }
+    }
+
+    const currentRangeKm = soc ? ((maxRangeKm * soc) / 100).toFixed(1) : "0.0";
+
+    if (isConnected) {
+      return res.json({ 
+        soc: soc || 0, 
+        voltage: voltage ? `${voltage} V` : "0.0 V",
+        current: "0.0 A",
+        power: "0.00 kW",
+        energy: "0.00 Wh",
+        model,
+        currentRangeKm,
+        maxRangeKm,
+        isCharging: false
+      });
+    }
+
+    res.json({ 
+      soc: soc || 0, 
+      voltage: voltage ? `${voltage} V` : "0.0 V",
+      current: current ? `${current} A` : "0.0 A",
+      power: power ? `${power} kW` : "0.00 kW",
+      energy: `${energy} Wh`,
+      model,
+      currentRangeKm,
+      maxRangeKm,
+      isCharging
+    });
   } catch (err) {
     console.error("SOC error:", err.message);
     res.status(500).json({ error: "Failed to fetch SOC" });
@@ -159,9 +368,153 @@ router.get("/:id/soc", async (req, res) => {
 });
 
 /* -------------------------------------------------
+   VEHICLE INFO (Model, Range, Current Ah)
+   Status-aware: Returns different data based on connector status
+-------------------------------------------------- */
+router.get("/:id/vehicle-info", async (req, res) => {
+  const chargeBoxId = req.params.id;
+
+  try {
+    // First, get current connector status
+    const [statusRows] = await db.query(`
+      SELECT cs.status, cs.status_timestamp
+      FROM connector c
+      LEFT JOIN connector_status cs ON cs.connector_pk = c.connector_pk
+      WHERE c.charge_box_id = ? AND c.connector_id = 1
+      ORDER BY cs.status_timestamp DESC
+      LIMIT 1
+    `, [chargeBoxId]);
+
+    const currentStatus = statusRows.length ? statusRows[0].status : 'Unknown';
+    
+    // Get latest meter values for SoC and Current.Offered (BMS_Imax)
+    const [rows] = await db.query(`
+      SELECT 
+        cmv.measurand,
+        cmv.value,
+        cmv.value_timestamp
+      FROM connector_meter_value cmv
+      JOIN connector c ON c.connector_pk = cmv.connector_pk
+      WHERE c.charge_box_id = ?
+        AND cmv.measurand IN ('SoC', 'Current.Offered', 'Temperature', 'Voltage')
+        AND cmv.value_timestamp >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
+      ORDER BY cmv.value_timestamp DESC
+    `, [chargeBoxId]);
+
+    let soc = null;
+    let currentOffered = null;
+    let temperature = null;
+    let voltage = null;
+    let dataTimestamp = null;
+
+    // Extract latest values
+    for (const row of rows) {
+      if (row.measurand === 'SoC' && soc === null) {
+        soc = parseFloat(row.value);
+        dataTimestamp = row.value_timestamp;
+      }
+      if (row.measurand === 'Current.Offered' && currentOffered === null) {
+        currentOffered = parseFloat(row.value);
+      }
+      if (row.measurand === 'Temperature' && temperature === null) {
+        temperature = parseFloat(row.value);
+      }
+      if (row.measurand === 'Voltage' && voltage === null) {
+        voltage = parseFloat(row.value);
+      }
+    }
+
+    // Default values if no data
+    if (soc === null) soc = 0;
+    if (currentOffered === null) currentOffered = 2; // Default to Classic
+
+    // Determine vehicle model and max capacity based on BMS_Imax (Current.Offered)
+    let model, maxCapacityAh, maxRangeKm;
+    
+    if (currentOffered >= 0 && currentOffered <= 30) {
+      model = "Classic";
+      maxCapacityAh = 30;
+      maxRangeKm = 81;
+    } else if (currentOffered >= 31 && currentOffered <= 60) {
+      model = "Pro";
+      maxCapacityAh = 60;
+      maxRangeKm = 162;
+    } else if (currentOffered >= 61 && currentOffered <= 100) {
+      model = "Max";
+      maxCapacityAh = 90;
+      maxRangeKm = 243;
+    } else {
+      model = "Classic";
+      maxCapacityAh = 30;
+      maxRangeKm = 81;
+    }
+
+    // Calculate current Ah and range
+    const currentAh = (maxCapacityAh * soc) / 100;
+    const currentRangeKm = Math.round(currentAh * 2.7);
+
+    // Determine data source and freshness
+    let dataSource = 'realtime';
+    let dataAge = null;
+    
+    if (dataTimestamp) {
+      dataAge = Math.floor((Date.now() - new Date(dataTimestamp).getTime()) / 1000);
+      if (currentStatus === 'Preparing' && dataAge > 300) {
+        dataSource = 'lastKnown';
+      } else if (currentStatus === 'Charging') {
+        dataSource = 'realtime';
+      } else if (currentStatus === 'Finishing' || currentStatus === 'Available') {
+        dataSource = 'lastSession';
+      }
+    }
+
+    res.json({
+      status: currentStatus,
+      dataSource,
+      dataAge,
+      model,
+      soc,
+      currentAh: Math.round(currentAh * 100) / 100,
+      maxCapacityAh,
+      currentRangeKm,
+      maxRangeKm,
+      bmsImax: currentOffered,
+      temperature,
+      voltage,
+      lastUpdated: dataTimestamp
+    });
+  } catch (err) {
+    console.error("Vehicle info error:", err.message);
+    res.status(500).json({ error: "Failed to fetch vehicle info" });
+  }
+});
+
+/* -------------------------------------------------
+   CHARGING PARAMETERS (for configuration screen)
+-------------------------------------------------- */
+const chargingParamsService = require('../services/chargingParamsService');
+
+router.get("/:id/charging-params", [
+  param('id').matches(/^[A-Za-z0-9_]+$/).withMessage('Invalid charger ID'),
+  validate
+], async (req, res) => {
+  try {
+    const params = await chargingParamsService.getChargingParameters(req.params.id);
+    res.json(params);
+  } catch (err) {
+    console.error("Charging params error:", err.message);
+    res.status(500).json({ error: "Failed to fetch charging parameters" });
+  }
+});
+
+/* -------------------------------------------------
    SINGLE CONNECTOR STATUS
 -------------------------------------------------- */
-router.get("/:id/connectors/:connectorId", async (req, res) => {
+router.get("/:id/connectors/:connectorId", [
+  param('id').matches(/^[A-Za-z0-9_]+$/).withMessage('Invalid charger ID'),
+  param('connectorId').isInt({ min: 1, max: 10 }).withMessage('Invalid connector ID'),
+  validate
+], async (req, res) => {
   const chargeBoxId = req.params.id;
   const connectorId = parseInt(req.params.connectorId);
 

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - flashCharge</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="mobile-container">
+    <div class="mobile-header">
+      <h1>⚡ flashCharge</h1>
+      <p class="charger-id">Login Required</p>
+    </div>
+
+    <div class="vehicle-info" style="flex-direction: column; gap: 16px; padding: 20px;">
+      <input type="text" id="username" placeholder="Username" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--text-main); font-size: 14px;">
+      <input type="password" id="password" placeholder="Password" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--text-main); font-size: 14px;">
+      <button id="login-btn" class="ev-btn start" style="width: 100%;">LOGIN</button>
+      <p id="error-msg" style="color: var(--danger); font-size: 12px; text-align: center; display: none;"></p>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('login-btn').onclick = async () => {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const errorMsg = document.getElementById('error-msg');
+
+      if (!username || !password) {
+        errorMsg.innerText = 'Please enter username and password';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.token) {
+          localStorage.setItem('authToken', data.token);
+          window.location.href = '/select-charger.html';
+        } else {
+          errorMsg.innerText = data.error || 'Login failed';
+          errorMsg.style.display = 'block';
+        }
+      } catch (error) {
+        errorMsg.innerText = 'Connection error';
+        errorMsg.style.display = 'block';
+      }
+    };
+
+    document.getElementById('password').onkeypress = (e) => {
+      if (e.key === 'Enter') document.getElementById('login-btn').click();
+    };
+  </script>
+</body>
+</html>

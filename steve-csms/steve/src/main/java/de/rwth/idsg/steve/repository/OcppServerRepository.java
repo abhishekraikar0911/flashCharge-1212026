@@ -48,4 +48,5 @@ public interface OcppServerRepository {
 
     int insertTransaction(InsertTransactionParams params);
     void updateTransaction(UpdateTransactionParams params);
+    void insertDataTransfer(String chargeBoxId, String vendorId, String messageId, String data);
 }

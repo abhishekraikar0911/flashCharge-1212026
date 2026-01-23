@@ -1,0 +1,16 @@
+Linking .pio\build\charger_esp32_production\firmware.elf 
+c:/users/akshay/.platformio/packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/bin/ld.exe: 
+.pio/build/charger_esp32_production/src/modules/ocpp_manager.cpp.o:(.literal._ZNSt17_Function_handlerIFvPN9MicroOcpp11TransactionE14TxNotificationEZN4ocpp4initEvEUlS2_S3_E7_E9_M_invokeERKSt9_Any_dataOS2_OS3_+0x10): 
+undefined reference to `ocpp::energyWh'
+c:/users/akshay/.platformio/packages/toolchain-xtensa-esp32/bin/../lib/gcc/xtensa-esp32-elf/8.4.0/../../../../xtensa-esp32-elf/bin/ld.exe: .pio/build/charger_esp32_production/src/modules/ocpp_manager.cpp.o:(.literal._ZNSt17_Function_handlerIFvPN9MicroOcpp11TransactionE14TxNotificationEZN4ocpp4initEvEUlS2_S3_E7_E9_M_invokeERKSt9_Any_dataOS2_OS3_+0x14): undefined reference to `ocpp::socPercent'
+collect2.exe: error: ld returned 1 exit status
+*** [.pio\build\charger_esp32_production\firmware.elf] Error 1
+============================== [FAILED] Took 34.82 seconds ==============================
+Environment               Status    Duration
+------------------------  --------  ------------
+charger_esp32_production  FAILED    00:00:34.816
+========================= 1 failed, 0 succeeded in 00:00:34.816 =========================
+ *  The terminal process "C:\Users\AKSHAY\.platformio\penv\Scripts\platformio.exe 'run'" terminated with exit code: 1. 
+ *  Terminal will be reused by tasks, press any key to close it. 
+
+

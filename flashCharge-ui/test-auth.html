@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Auth</title>
+</head>
+<body>
+  <h1>Auth Test</h1>
+  <button onclick="testLogin()">1. Test Login</button>
+  <button onclick="testCreate()">2. Test Create Session</button>
+  <pre id="output"></pre>
+
+  <script>
+    const output = document.getElementById('output');
+    
+    async function testLogin() {
+      output.textContent = 'Testing login...\n';
+      
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username: 'user', password: 'user'})
+      });
+      
+      const data = await res.json();
+      output.textContent += JSON.stringify(data, null, 2) + '\n';
+      
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
+        output.textContent += '\n✅ Token saved to localStorage\n';
+      }
+    }
+    
+    async function testCreate() {
+      const token = localStorage.getItem('authToken');
+      output.textContent = 'Testing create session...\n';
+      output.textContent += 'Token: ' + (token ? token.substring(0, 30) + '...' : 'NONE') + '\n\n';
+      
+      const res = await fetch('/api/prepaid/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({
+          chargerId: 'RIVOT_100A_01',
+          connectorId: 1,
+          amount: 20.50,
+          maxEnergyWh: 7000,
+          maxDurationSec: 1800
+        })
+      });
+      
+      const data = await res.json();
+      output.textContent += 'Status: ' + res.status + '\n';
+      output.textContent += JSON.stringify(data, null, 2) + '\n';
+    }
+  </script>
+</body>
+</html>

@@ -275,7 +275,7 @@ public class CentralSystemService16_Service {
     }
 
     /**
-     * Dummy implementation. This is new in OCPP 1.5. It must be vendor-specific.
+     * Store DataTransfer messages in database for later retrieval
      */
     public DataTransferResponse dataTransfer(DataTransferRequest parameters, String chargeBoxIdentity) {
         log.info("[Data Transfer] Charge point: {}, Vendor Id: {}", chargeBoxIdentity, parameters.getVendorId());
@@ -286,8 +286,14 @@ public class CentralSystemService16_Service {
             log.info("[Data Transfer] Data: {}", parameters.getData());
         }
 
-        // OCPP requires a status to be set. Since this is a dummy impl, set it to "Accepted".
-        // https://github.com/steve-community/steve/pull/36
+        // Store in database
+        ocppServerRepository.insertDataTransfer(
+            chargeBoxIdentity,
+            parameters.getVendorId(),
+            parameters.isSetMessageId() ? parameters.getMessageId() : null,
+            parameters.isSetData() ? parameters.getData() : null
+        );
+
         return new DataTransferResponse().withStatus(DataTransferStatus.ACCEPTED);
     }
 

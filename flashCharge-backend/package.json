@@ -13,9 +13,14 @@
   "dependencies": {
     "axios": "^1.13.2",
     "axios-cookiejar-support": "^6.0.5",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "express-validator": "^7.3.1",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.0.2",
     "mysql2": "^3.16.0",
     "tough-cookie": "^6.0.0"
   }

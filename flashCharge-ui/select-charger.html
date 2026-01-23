@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select Charger - flashCharge</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .station-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 12px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    
+    .station-card {
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      border: 2px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 12px;
+      transition: all 0.3s ease;
+    }
+    
+    .station-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    
+    .station-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary), var(--success));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    
+    .station-info {
+      flex: 1;
+    }
+    
+    .station-name {
+      font-family: var(--font-tech);
+      font-size: 16px;
+      color: var(--text-main);
+      font-weight: 700;
+    }
+    
+    .station-subtitle {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .guns-container {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    
+    .gun-wrapper {
+      flex: 1;
+      max-width: 150px;
+    }
+    
+    .gun-visual {
+      position: relative;
+      height: 120px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+    }
+    
+    .gun-visual.available {
+      border-color: var(--success);
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    }
+    
+    .gun-visual.available:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.5);
+    }
+    
+    .gun-visual.charging {
+      border-color: var(--primary);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+      animation: pulse-charging 2s infinite;
+    }
+    
+    .gun-visual.unavailable {
+      border-color: var(--danger);
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .gun-visual.preparing {
+      border-color: #a855f7;
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+    }
+    
+    @keyframes pulse-charging {
+      0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+      50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); }
+    }
+    
+    .gun-icon {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+    
+    .gun-label {
+      font-family: var(--font-tech);
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .gun-status {
+      margin-top: 8px;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .gun-status.available {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+    
+    .gun-status.charging {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--primary);
+    }
+    
+    .gun-status.unavailable {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+    }
+    
+    .gun-status.preparing {
+      background: rgba(168, 85, 247, 0.2);
+      color: #a855f7;
+    }
+    
+    .loading {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 20px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="mobile-container">
+    <div class="mobile-header">
+      <h1>
+        <span>⚡ Charging Stations</span>
+        <button id="logout-btn" class="logout-btn">Logout</button>
+      </h1>
+      <p class="charger-id">Select a connector to start</p>
+    </div>
+
+    <div id="station-grid" class="station-grid">
+      <div class="loading">Loading stations...</div>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api';
+    const CHARGERS = ['RIVOT_100A_01', 'RIVOT_100A_02'];
+
+    function getAuthHeaders() {
+      const token = localStorage.getItem('authToken');
+      return token ? { 'Authorization': `Bearer ${token}` } : {};
+    }
+
+    function getGunIcon(status) {
+      if (status === 'Charging') return '🔌';
+      if (status === 'Available') return '⚡';
+      if (status === 'Preparing') return '🔋';
+      return '❌';
+    }
+
+    function getStatusClass(status) {
+      if (status === 'Available') return 'available';
+      if (status === 'Charging') return 'charging';
+      if (status === 'Preparing' || status === 'Finishing') return 'preparing';
+      return 'unavailable';
+    }
+
+    async function loadStations() {
+      const grid = document.getElementById('station-grid');
+      grid.innerHTML = '';
+
+      for (const chargerId of CHARGERS) {
+        try {
+          const res = await fetch(`${API}/chargers/${chargerId}/connectors`, {
+            headers: getAuthHeaders()
+          });
+          
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          
+          const connectors = await res.json();
+
+          const card = document.createElement('div');
+          card.className = 'station-card';
+
+          let gunsHtml = '';
+          connectors.forEach(conn => {
+            const statusClass = getStatusClass(conn.status);
+            const isClickable = conn.status === 'Available' || conn.status === 'Preparing';
+            const clickHandler = isClickable ? `onclick="selectConnector('${chargerId}', ${conn.connectorId})"` : '';
+            
+            gunsHtml += `
+              <div class="gun-wrapper">
+                <div class="gun-visual ${statusClass}" ${clickHandler}>
+                  <div class="gun-icon">${getGunIcon(conn.status)}</div>
+                  <div class="gun-label">Gun ${conn.connectorId}</div>
+                </div>
+                <div class="gun-status ${statusClass}">${conn.status}</div>
+              </div>
+            `;
+          });
+
+          card.innerHTML = `
+            <div class="station-header">
+              <div class="station-icon">⚡</div>
+              <div class="station-info">
+                <div class="station-name">${chargerId}</div>
+                <div class="station-subtitle">DC Fast Charger • 3kW</div>
+              </div>
+            </div>
+            <div class="guns-container">
+              ${gunsHtml}
+            </div>
+          `;
+
+          grid.appendChild(card);
+        } catch (error) {
+          console.error(`Error loading ${chargerId}:`, error);
+        }
+      }
+    }
+
+    window.selectConnector = function(chargerId, connectorId) {
+      window.location.href = `/configure-charge.html?charger=${chargerId}&connector=${connectorId}`;
+    };
+
+    document.getElementById('logout-btn').onclick = () => {
+      localStorage.removeItem('authToken');
+      window.location.href = '/login.html';
+    };
+
+    window.onload = () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        window.location.replace('/login.html');
+        return;
+      }
+      loadStations();
+      setInterval(loadStations, 5000);
+    };
+  </script>
+</body>
+</html>
