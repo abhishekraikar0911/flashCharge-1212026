@@ -128,7 +128,7 @@ router.get('/monitor/:sessionId', authenticateToken, async (req, res) => {
     `, [session.transaction_pk]);
 
     const currentEnergy = energy.length ? parseFloat(energy[0].energy) : 0;
-    const currentCost = (currentEnergy / 1000) * 2.88;
+    const currentCost = (currentEnergy / 1000) * 15.00;
     const percentComplete = (currentEnergy / session.max_energy_wh) * 100;
 
     // Auto-stop if limit reached

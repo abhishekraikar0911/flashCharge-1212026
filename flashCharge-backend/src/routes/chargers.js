@@ -4,6 +4,7 @@ const { body, param, validationResult } = require('express-validator');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
 
 const steve = require("../services/steveService");
+const ocpp = require("../services/ocppService");
 const txService = require("../services/transactionService");
 const db = require("../services/db");
 
@@ -35,16 +36,19 @@ router.post("/:id/start", authenticateToken, [
     const chargePointId = req.params.id;
     const { connectorId, idTag } = req.body;
 
-    const result = await steve.startCharging(
-      chargePointId,
-      connectorId,
-      idTag
-    );
+    console.log(`Starting charging for ${chargePointId}, connector ${connectorId}, idTag ${idTag}`);
 
+    // Use SteVe external API
+    const result = await steve.startCharging(chargePointId, connectorId, idTag);
+
+    console.log('SteVe external API result:', result);
     res.json(result);
   } catch (err) {
     console.error("Start error:", err.message);
-    res.status(500).json({ error: "Failed to start charging" });
+    console.error("Start error details:", err.response?.data || err);
+    res.status(500).json({ 
+      error: err.response?.data?.message || err.message || "Failed to start charging"
+    });
   }
 });
 
@@ -57,19 +61,28 @@ router.post("/:id/stop", authenticateToken, [
     const chargePointId = req.params.id;
     let transactionId = req.body?.transactionId;
 
+    console.log(`Stopping charging for ${chargePointId}, transactionId: ${transactionId}`);
+
     if (!transactionId) {
       const active = await txService.getActiveTransaction(chargePointId);
       if (!active) {
+        console.log('No active transaction found for', chargePointId);
         return res.status(400).json({ error: "No active transaction" });
       }
       transactionId = active.transactionId;
+      console.log('Found active transaction:', transactionId);
     }
 
+    // Use SteVe external API
     const result = await steve.stopCharging(chargePointId, transactionId);
+    console.log('SteVe external API result:', result);
     res.json(result);
   } catch (err) {
     console.error("Stop error:", err.message);
-    res.status(500).json({ error: "Failed to stop charging" });
+    console.error("Stop error details:", err.response?.data || err);
+    res.status(500).json({ 
+      error: err.response?.data?.message || err.message || "Failed to stop charging"
+    });
   }
 });
 
@@ -212,47 +225,73 @@ router.get("/:id/soc", [
     const isCharging = status === 'Charging';
     const isConnected = ['Preparing', 'Finishing'].includes(status);
 
-    // Check for pre-charge data when gun is connected
-    if (isConnected) {
-      const [preChargeRows] = await db.query(`
-        SELECT data, received_at
-        FROM data_transfer
-        WHERE charge_box_id = ?
-          AND message_id = 'PreChargeData'
-          AND received_at >= DATE_SUB(NOW(), INTERVAL 2 HOUR)
-        ORDER BY received_at DESC
-        LIMIT 1
-      `, [chargeBoxId]);
+    // Priority 1: VehicleInfo (DataTransfer) - sent every ~5s, always available
+    const [dataTransferRows] = await db.query(`
+      SELECT data, received_at
+      FROM data_transfer
+      WHERE charge_box_id = ?
+        AND message_id = 'VehicleInfo'
+        AND received_at >= DATE_SUB(NOW(), INTERVAL 10 SECOND)
+      ORDER BY received_at DESC
+      LIMIT 1
+    `, [chargeBoxId]);
 
-      if (preChargeRows.length > 0) {
-        const preChargeData = JSON.parse(preChargeRows[0].data);
-        const maxCurrent = preChargeData.maxCurrent || 0;
-        
-        let model = "NX-100 CLASSIC", maxRangeKm = 84;
-        if (maxCurrent >= 31 && maxCurrent <= 60) {
-          model = "NX-100 PRO";
-          maxRangeKm = 168;
-        } else if (maxCurrent >= 61) {
-          model = "NX-100 MAX";
-          maxRangeKm = 252;
-        }
-
-        const soc = preChargeData.soc || 0;
-        const currentRangeKm = ((maxRangeKm * soc) / 100).toFixed(1);
-
-        return res.json({ 
-          soc: parseFloat(soc.toFixed(2)),
-          voltage: `${parseFloat(preChargeData.voltage || 0).toFixed(1)} V`,
-          current: "0.0 A",
-          power: "0.00 kW",
-          energy: "0.00 Wh",
-          model,
-          currentRangeKm,
-          maxRangeKm,
-          isCharging: false,
-          dataSource: 'precharge'
-        });
+    if (dataTransferRows.length > 0) {
+      let rawData = dataTransferRows[0].data;
+      if (typeof rawData === 'string') {
+        rawData = rawData.replace(/&#34;/g, '"').replace(/&quot;/g, '"');
       }
+      const vehicleInfo = JSON.parse(rawData);
+      const soc = vehicleInfo.soc || 0;
+      const model = vehicleInfo.model || "Classic";
+      const maxCurrent = vehicleInfo.maxCurrent || 32;
+      const temperature = vehicleInfo.temperature ? parseFloat(vehicleInfo.temperature).toFixed(1) : null;
+      
+      let maxRangeKm = 81;
+      if (model === "Pro") maxRangeKm = 162;
+      else if (model === "Max") maxRangeKm = 243;
+      
+      // Calculate range from SOC (unified formula)
+      const currentRangeKm = ((soc / 100) * maxRangeKm).toFixed(1);
+
+      // Priority 2: Get real-time measurements from MeterValues (only during charging)
+      let voltage = 0, current = 0, power = 0, meterTemp = null;
+      
+      if (isCharging) {
+        const [meterRows] = await db.query(`
+          SELECT measurand, value
+          FROM connector_meter_value cmv
+          JOIN connector c ON c.connector_pk = cmv.connector_pk
+          WHERE c.charge_box_id = ?
+            AND cmv.measurand IN ('Voltage', 'Current.Import', 'Power.Active.Import', 'Temperature')
+            AND cmv.value_timestamp >= DATE_SUB(NOW(), INTERVAL 10 SECOND)
+          ORDER BY cmv.value_timestamp DESC
+          LIMIT 15
+        `, [chargeBoxId]);
+        
+        for (const row of meterRows) {
+          if (row.measurand === 'Voltage' && voltage === 0) voltage = parseFloat(row.value);
+          if (row.measurand === 'Current.Import' && current === 0) current = parseFloat(row.value);
+          if (row.measurand === 'Power.Active.Import' && power === 0) power = parseFloat(row.value) / 1000;
+          if (row.measurand === 'Temperature' && meterTemp === null) meterTemp = parseFloat(row.value);
+        }
+      }
+
+      const finalTemp = meterTemp !== null ? meterTemp : (temperature ? parseFloat(temperature) : null);
+      
+      return res.json({ 
+        soc: parseFloat(soc.toFixed(2)),
+        voltage: voltage > 0 ? `${voltage.toFixed(1)} V` : "--",
+        current: current > 0 ? `${current.toFixed(1)} A` : "--",
+        power: power > 0 ? `${power.toFixed(2)} kW` : "--",
+        energy: "0.00 Wh",
+        temperature: finalTemp !== null ? `${finalTemp.toFixed(1)}°C` : "--",
+        model,
+        currentRangeKm,
+        maxRangeKm,
+        isCharging,
+        dataSource: 'vehicleInfo+meterValues'
+      });
     }
 
     if (!isCharging && !isConnected) {
@@ -262,6 +301,7 @@ router.get("/:id/soc", [
         current: "0.0 A",
         power: "0.00 kW",
         energy: "0.00 Wh",
+        temperature: "--",
         model: "--",
         currentRangeKm: "--",
         maxRangeKm: "--",
@@ -343,6 +383,7 @@ router.get("/:id/soc", [
         current: "0.0 A",
         power: "0.00 kW",
         energy: "0.00 Wh",
+        temperature: "--",
         model,
         currentRangeKm,
         maxRangeKm,
@@ -356,6 +397,7 @@ router.get("/:id/soc", [
       current: current ? `${current} A` : "0.0 A",
       power: power ? `${power} kW` : "0.00 kW",
       energy: `${energy} Wh`,
+      temperature: "--",
       model,
       currentRangeKm,
       maxRangeKm,
@@ -451,7 +493,7 @@ router.get("/:id/vehicle-info", async (req, res) => {
 
     // Calculate current Ah and range
     const currentAh = (maxCapacityAh * soc) / 100;
-    const currentRangeKm = Math.round(currentAh * 2.7);
+    const currentRangeKm = Math.round((soc / 100) * maxRangeKm);
 
     // Determine data source and freshness
     let dataSource = 'realtime';

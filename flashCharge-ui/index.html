@@ -25,6 +25,17 @@
 
     <div class="status-bar">
       <span>Status: <strong id="status">--</strong></span>
+      <div id="timer-display" class="timer-display hidden">
+        <span class="timer-label" id="timer-label">Time Elapsed:</span>
+        <span class="timer-value" id="timer-value">00:00:00</span>
+      </div>
+      <div id="progress-display" class="progress-display hidden">
+        <div class="progress-label" id="progress-label">Target Progress:</div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+          <span class="progress-text" id="progress-text">0%</span>
+        </div>
+      </div>
     </div>
 
     <div class="vehicle-info">
@@ -35,6 +46,10 @@
       <div class="info-item">
         <span class="info-label">Range:</span>
         <span class="info-value"><span id="current-range">--</span> / <span id="max-range">--</span> km</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Temp:</span>
+        <span class="info-value" id="vehicle-temp" style="color: #f59e0b;">N/A</span>
       </div>
     </div>
 
@@ -106,24 +121,44 @@
           <span class="value change" id="summary-soc">44% → 80%</span>
         </div>
         <div class="summary-row">
+          <span class="label"></span>
+          <span class="value gain" id="summary-soc-gain">+36%</span>
+        </div>
+        <div class="summary-row">
           <span class="label">Range:</span>
           <span class="value change" id="summary-range">74km → 135km</span>
         </div>
         <div class="summary-row">
+          <span class="label"></span>
+          <span class="value gain" id="summary-range-gain">+61 km</span>
+        </div>
+        <div class="summary-row">
           <span class="label">Energy Added:</span>
           <span class="value highlight" id="summary-energy">1.56 kWh</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Efficiency:</span>
+          <span class="value" id="summary-efficiency">55 Wh/km</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Duration:</span>
+          <span class="value" id="summary-duration">26m 15s</span>
         </div>
       </div>
 
       <div class="summary-section">
         <div class="summary-section-title">Payment Details</div>
         <div class="summary-row">
-          <span class="label">Paid Amount:</span>
-          <span class="value" id="summary-paid">₹20</span>
+          <span class="label">You Paid:</span>
+          <span class="value" id="summary-paid">₹20.00</span>
         </div>
         <div class="summary-row">
           <span class="label">Actual Cost:</span>
-          <span class="value" id="summary-actual">₹10</span>
+          <span class="value" id="summary-actual">₹16.50</span>
+        </div>
+        <div class="summary-row">
+          <span class="label"></span>
+          <span class="value breakdown" id="summary-breakdown">1.1 kWh × ₹15/kWh</span>
         </div>
       </div>
 
@@ -134,8 +169,7 @@
       </div>
 
       <div class="summary-actions">
-        <button class="summary-btn secondary" onclick="closeSummary()">Close</button>
-        <button class="summary-btn primary" onclick="goToStations()">New Charge</button>
+        <button class="summary-btn primary" onclick="startNewSession()">Start New Session</button>
       </div>
     </div>
   </div>

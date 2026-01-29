@@ -1,10 +1,41 @@
 const API = "/api";
+const WS_URL = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
 const urlParams = new URLSearchParams(window.location.search);
 const chargerId = urlParams.get('charger') || "RIVOT_100A_01";
 const connectorId = parseInt(urlParams.get('connector')) || 1;
 
-const PRICE_PER_KWH = 10.00;
+const PRICE_PER_KWH = 15.00;
 const CHARGING_POWER_KW = 3.0;
+
+let ws = null;
+
+function connectWebSocket() {
+  const token = localStorage.getItem('authToken');
+  if (!token) return;
+  
+  ws = new WebSocket(`${WS_URL}?charger=${chargerId}&token=${token}`);
+  
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === 'update') {
+      vehicleData.currentSoc = data.soc || vehicleData.currentSoc;
+      vehicleData.model = data.model || vehicleData.model;
+      vehicleData.currentRange = data.range || vehicleData.currentRange;
+      vehicleData.temperature = data.temperature;
+      updateVehicleInfo();
+      updateSummary();
+    }
+  };
+  
+  ws.onclose = (event) => {
+    if (event.code === 4001 || event.code === 4002) {
+      localStorage.removeItem('authToken');
+      window.location.replace('/login.html');
+      return;
+    }
+    setTimeout(connectWebSocket, 3000);
+  };
+}
 
 let vehicleData = {
   model: "NX-100 PRO",
@@ -13,7 +44,8 @@ let vehicleData = {
   currentRange: 74,
   maxRange: 168,
   batteryCapacityKwh: 4.32,
-  maxCurrentA: 35
+  maxCurrentA: 35,
+  temperature: null
 };
 
 let currentMode = 'soc';
@@ -23,6 +55,9 @@ let currentConfig = {
   cost: 13,
   time: 26
 };
+
+let refreshInterval = null;
+let isUpdating = false;
 
 function getAuthHeaders() {
   const token = localStorage.getItem('authToken');
@@ -38,32 +73,56 @@ function showToast(message, type = 'success') {
 }
 
 async function fetchVehicleData() {
+  if (isUpdating) return;
+  isUpdating = true;
+  
   try {
     const res = await fetch(`${API}/chargers/${chargerId}/soc`);
     const data = await res.json();
     
-    vehicleData.currentSoc = data.soc || 44;
-    vehicleData.model = data.model || "NX-100 PRO";
-    vehicleData.currentRange = parseFloat(data.currentRangeKm) || 74;
-    vehicleData.maxRange = parseFloat(data.maxRangeKm) || 168;
+    console.log('Fetched vehicle data:', data);
     
-    if (data.model.includes("CLASSIC")) {
-      vehicleData.batteryCapacityKwh = 2.16;
-      vehicleData.maxCurrentA = 30;
-    } else if (data.model.includes("PRO")) {
-      vehicleData.batteryCapacityKwh = 4.32;
-      vehicleData.maxCurrentA = 35;
-    } else if (data.model.includes("MAX")) {
-      vehicleData.batteryCapacityKwh = 6.48;
-      vehicleData.maxCurrentA = 100;
+    const newSoc = data.soc || vehicleData.currentSoc;
+    const newModel = data.model || vehicleData.model;
+    const newRange = parseFloat(data.currentRangeKm) || vehicleData.currentRange;
+    const newMaxRange = parseFloat(data.maxRangeKm) || vehicleData.maxRange;
+    const newTemp = data.temperature || null;
+    
+    // Only update if values changed
+    const hasChanges = 
+      newSoc !== vehicleData.currentSoc ||
+      newModel !== vehicleData.model ||
+      newRange !== vehicleData.currentRange ||
+      newMaxRange !== vehicleData.maxRange ||
+      newTemp !== vehicleData.temperature;
+    
+    if (hasChanges) {
+      vehicleData.currentSoc = newSoc;
+      vehicleData.model = newModel;
+      vehicleData.currentRange = newRange;
+      vehicleData.maxRange = newMaxRange;
+      vehicleData.temperature = newTemp;
+      
+      if (data.model.includes("Classic")) {
+        vehicleData.batteryCapacityKwh = 2.16;
+        vehicleData.maxCurrentA = 30;
+      } else if (data.model.includes("Pro")) {
+        vehicleData.batteryCapacityKwh = 4.32;
+        vehicleData.maxCurrentA = 35;
+      } else if (data.model.includes("Max")) {
+        vehicleData.batteryCapacityKwh = 6.48;
+        vehicleData.maxCurrentA = 100;
+      }
+      
+      console.log('Updated vehicleData:', vehicleData);
+      
+      updateVehicleInfo();
+      updateSummary();
     }
-    
-    updateVehicleInfo();
-    initializeSlider();
   } catch (error) {
     console.error("Failed to fetch vehicle data:", error);
-    updateVehicleInfo();
-    initializeSlider();
+  } finally {
+    isUpdating = false;
   }
 }
 
@@ -74,10 +133,19 @@ function updateVehicleInfo() {
   } else if (modelShort === '--') {
     modelShort = 'PRO';
   }
-  document.getElementById('vehicle-model').innerText = modelShort;
-  document.getElementById('current-soc').innerText = `${vehicleData.currentSoc}%`;
-  document.getElementById('current-range').innerText = `${vehicleData.currentRange} km`;
-  document.getElementById('charger-display').innerText = chargerId;
+  
+  const modelEl = document.getElementById('vehicle-model');
+  const socEl = document.getElementById('current-soc');
+  const rangeEl = document.getElementById('current-range');
+  const chargerEl = document.getElementById('charger-display');
+  
+  const newSocText = `${Math.round(vehicleData.currentSoc)}%`;
+  const newRangeText = `${Math.round(vehicleData.currentRange)} km`;
+  
+  if (modelEl && modelEl.innerText !== modelShort) modelEl.innerText = modelShort;
+  if (socEl && socEl.innerText !== newSocText) socEl.innerText = newSocText;
+  if (rangeEl && rangeEl.innerText !== newRangeText) rangeEl.innerText = newRangeText;
+  if (chargerEl && chargerEl.innerText !== chargerId) chargerEl.innerText = chargerId;
 }
 
 function initializeSlider() {
@@ -94,11 +162,12 @@ function switchMode(mode) {
     }
   });
   
+  // Calculate maximum values consistently
   const socDiffMax = vehicleData.maxSoc - vehicleData.currentSoc;
-  const maxEnergy = (vehicleData.batteryCapacityKwh * socDiffMax) / 100;
-  const maxCost = Math.ceil(maxEnergy * PRICE_PER_KWH);
+  const maxEnergyKwh = (vehicleData.batteryCapacityKwh * socDiffMax) / 100;
   const chargingPowerKW = Math.min(CHARGING_POWER_KW, (vehicleData.maxCurrentA * 72) / 1000);
-  const maxTime = Math.ceil((maxEnergy / chargingPowerKW) * 60);
+  const maxTimeMinutes = Math.ceil((maxEnergyKwh / chargingPowerKW) * 60);
+  const maxCost = Math.ceil(maxEnergyKwh * PRICE_PER_KWH);
   
   let values = [];
   let defaultValue;
@@ -119,19 +188,21 @@ function switchMode(mode) {
       break;
       
     case 'amount':
-      for (let i = 5; i <= maxCost; i += 5) {
+      for (let i = 1; i <= maxCost; i++) {
         values.push({ value: i, label: `₹${i}` });
       }
       defaultValue = Math.min(currentConfig.cost, maxCost);
       break;
       
     case 'time':
-      for (let i = 1; i <= maxTime; i += 2) {
+      for (let i = 1; i <= maxTimeMinutes; i++) {
         values.push({ value: i, label: `${i}m` });
       }
-      defaultValue = Math.min(currentConfig.time, maxTime);
+      defaultValue = Math.min(currentConfig.time, maxTimeMinutes);
       break;
   }
+  
+  console.log(`Mode: ${mode}, Max values: energy=${maxEnergyKwh.toFixed(2)}kWh, cost=₹${maxCost}, time=${maxTimeMinutes}min`);
   
   populatePicker(values, defaultValue);
 }
@@ -213,10 +284,10 @@ function updatePickerSelection() {
 function updateFromPickerValue(value) {
   let targetSoc, targetRange, energyKwh, cost, timeMinutes;
   
+  // Calculate based on the selected mode
   switch(currentMode) {
     case 'soc':
       targetSoc = value;
-      targetRange = (targetSoc / 100) * vehicleData.maxRange;
       break;
       
     case 'range':
@@ -229,24 +300,48 @@ function updateFromPickerValue(value) {
       energyKwh = cost / PRICE_PER_KWH;
       const socIncrease = (energyKwh / vehicleData.batteryCapacityKwh) * 100;
       targetSoc = Math.min(vehicleData.currentSoc + socIncrease, 100);
-      targetRange = (targetSoc / 100) * vehicleData.maxRange;
       break;
       
     case 'time':
       timeMinutes = value;
-      energyKwh = (CHARGING_POWER_KW * timeMinutes) / 60;
+      const chargingPowerKW = Math.min(CHARGING_POWER_KW, (vehicleData.maxCurrentA * 72) / 1000);
+      energyKwh = (chargingPowerKW * timeMinutes) / 60;
       const socInc = (energyKwh / vehicleData.batteryCapacityKwh) * 100;
       targetSoc = Math.min(vehicleData.currentSoc + socInc, 100);
-      targetRange = (targetSoc / 100) * vehicleData.maxRange;
       break;
   }
   
-  const socDiff = targetSoc - vehicleData.currentSoc;
-  energyKwh = (vehicleData.batteryCapacityKwh * socDiff) / 100;
-  cost = energyKwh * PRICE_PER_KWH;
+  // Now calculate all other values based on targetSoc
+  if (!targetRange) {
+    targetRange = (targetSoc / 100) * vehicleData.maxRange;
+  }
   
-  const chargingPowerKW = Math.min(CHARGING_POWER_KW, (vehicleData.maxCurrentA * 72) / 1000);
-  timeMinutes = (energyKwh / chargingPowerKW) * 60;
+  // Calculate energy needed based on SOC difference
+  const socDiff = targetSoc - vehicleData.currentSoc;
+  if (!energyKwh) {
+    energyKwh = (vehicleData.batteryCapacityKwh * socDiff) / 100;
+  }
+  
+  // Calculate cost based on energy
+  if (!cost) {
+    cost = energyKwh * PRICE_PER_KWH;
+  }
+  
+  // Calculate time based on energy and power
+  if (!timeMinutes) {
+    const chargingPowerKW = Math.min(CHARGING_POWER_KW, (vehicleData.maxCurrentA * 72) / 1000);
+    timeMinutes = (energyKwh / chargingPowerKW) * 60;
+  }
+  
+  console.log('Unified calculation:', {
+    mode: currentMode,
+    pickerValue: value,
+    targetSoc: targetSoc.toFixed(1),
+    targetRange: targetRange.toFixed(1),
+    energyKwh: energyKwh.toFixed(2),
+    cost: cost.toFixed(0),
+    timeMinutes: timeMinutes.toFixed(0)
+  });
   
   currentConfig = {
     targetSoc: Math.round(targetSoc),
@@ -268,14 +363,26 @@ function updateSliderGradient(slider) {
 }
 
 function updateSummary() {
-  document.getElementById('summary-battery').innerText = 
-    `${vehicleData.currentSoc}% → ${currentConfig.targetSoc}%`;
-  document.getElementById('summary-range').innerText = 
-    `${vehicleData.currentRange} → ${currentConfig.targetRange}km`;
-  document.getElementById('summary-time').innerText = formatTime(currentConfig.time);
-  document.getElementById('summary-energy').innerText = `${currentConfig.energyKwh.toFixed(2)} kWh`;
-  document.getElementById('summary-cost').innerText = `₹${currentConfig.cost}`;
-  document.getElementById('pay-amount').innerText = currentConfig.cost;
+  const batteryEl = document.getElementById('summary-battery');
+  const rangeEl = document.getElementById('summary-range');
+  const timeEl = document.getElementById('summary-time');
+  const energyEl = document.getElementById('summary-energy');
+  const costEl = document.getElementById('summary-cost');
+  const payAmountEl = document.getElementById('pay-amount');
+  
+  const batteryText = `${Math.round(vehicleData.currentSoc)}% → ${currentConfig.targetSoc}%`;
+  const rangeText = `${Math.round(vehicleData.currentRange)} → ${currentConfig.targetRange}km`;
+  const timeText = formatTime(currentConfig.time || 0);
+  const energyText = `${(currentConfig.energyKwh || 0).toFixed(2)} kWh`;
+  const costText = `₹${currentConfig.cost || 0}`;
+  const costStr = (currentConfig.cost || 0).toString();
+  
+  if (batteryEl && batteryEl.innerText !== batteryText) batteryEl.innerText = batteryText;
+  if (rangeEl && rangeEl.innerText !== rangeText) rangeEl.innerText = rangeText;
+  if (timeEl && timeEl.innerText !== timeText) timeEl.innerText = timeText;
+  if (energyEl && energyEl.innerText !== energyText) energyEl.innerText = energyText;
+  if (costEl && costEl.innerText !== costText) costEl.innerText = costText;
+  if (payAmountEl && payAmountEl.innerText !== costStr) payAmountEl.innerText = costStr;
 }
 
 function formatTime(minutes) {
@@ -384,5 +491,20 @@ window.onload = () => {
   
   document.getElementById('pay-start-btn').onclick = handlePayment;
   
-  fetchVehicleData();
+  connectWebSocket();
+  
+  // Initial fetch
+  fetchVehicleData().then(() => {
+    initializeSlider();
+  });
+  
+  // Fallback polling every 30s
+  refreshInterval = setInterval(fetchVehicleData, 30000);
+};
+
+// Cleanup on page unload
+window.onbeforeunload = () => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+  }
 };

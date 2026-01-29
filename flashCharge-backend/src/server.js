@@ -8,9 +8,14 @@ const transactionsRoutes = require("./routes/transactions");
 const authRoutes = require("./routes/auth");
 const prepaidRoutes = require("./routes/prepaid");
 const firmwareRoutes = require("./routes/firmware");
+const { getStats } = require('./services/websocket');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const http = require('http');
+const { initWebSocket, startMonitoring } = require('./services/websocket');
+
+const server = http.createServer(app);
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',')
@@ -45,6 +50,10 @@ app.get("/health", (req, res) => {
   res.json({ status: "Dashboard backend running" });
 });
 
+app.get("/api/ws/stats", (req, res) => {
+  res.json(getStats());
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/chargers", chargersRoutes);
 app.use("/api/transactions", transactionsRoutes);
@@ -54,7 +63,11 @@ app.use("/api/firmware", firmwareRoutes);
 // Serve firmware files
 app.use('/firmware', express.static('/opt/ev-platform/firmware-storage'));
 
-app.listen(PORT, "0.0.0.0", () => {
+initWebSocket(server);
+startMonitoring();
+
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Dashboard backend running on port ${PORT}`);
+  console.log(`WebSocket server running on ws://localhost:${PORT}/ws`);
 });
 

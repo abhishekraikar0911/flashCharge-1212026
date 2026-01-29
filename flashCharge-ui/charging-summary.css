@@ -5,8 +5,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -18,10 +18,10 @@
   background: var(--glass);
   backdrop-filter: blur(20px);
   border: 2px solid var(--glass-border);
-  border-radius: 16px;
-  padding: 20px;
+  border-radius: 20px;
+  padding: 24px;
   max-width: 90%;
-  width: 360px;
+  width: 380px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   animation: slideUp 0.3s ease;
 }
@@ -42,15 +42,18 @@
 }
 
 .summary-icon {
-  font-size: 48px;
-  margin-bottom: 8px;
+  font-size: 56px;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 4px 8px rgba(16, 185, 129, 0.3));
 }
 
 .summary-title {
   font-family: var(--font-tech);
-  font-size: 20px;
+  font-size: 22px;
   color: var(--success);
   margin: 0;
+  font-weight: 800;
+  letter-spacing: 0.5px;
 }
 
 .summary-subtitle {
@@ -60,10 +63,11 @@
 }
 
 .summary-section {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .summary-section-title {
@@ -102,13 +106,26 @@
   color: var(--primary);
 }
 
+.summary-row .value.gain {
+  color: var(--success);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.summary-row .value.breakdown {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-style: italic;
+}
+
 .refund-message {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(59, 130, 246, 0.1));
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.15));
   border: 1px solid var(--success);
-  border-radius: 8px;
-  padding: 12px;
-  margin: 12px 0;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 14px 0;
   text-align: center;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
 }
 
 .refund-amount {
@@ -133,8 +150,8 @@
 
 .summary-btn {
   flex: 1;
-  padding: 12px;
-  border-radius: 10px;
+  padding: 14px;
+  border-radius: 12px;
   border: none;
   font-family: var(--font-tech);
   font-size: 13px;
@@ -142,7 +159,7 @@
   cursor: pointer;
   transition: all 0.2s;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
 }
 
 .summary-btn.primary {
@@ -158,7 +175,12 @@
 }
 
 .summary-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.97);
+}
+
+.summary-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
 }
 
 .hidden {

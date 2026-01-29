@@ -57,7 +57,7 @@ function calculateFromRange(targetKm) {
   const finalSOC = (finalAh / params.maxCapacityAh) * 100;
   const energykWh = (actualAhNeeded * 73.6) / 1000;
   const timeMin = (actualAhNeeded / params.chargingCurrent) * 60;
-  const cost = energykWh * 2.88;
+  const cost = energykWh * 15.00;
   
   return { energykWh, timeMin, finalSOC, finalRange: params.currentRangeKm + (actualAhNeeded * 2.8), cost };
 }
@@ -71,13 +71,13 @@ function calculateFromTime(targetMin) {
   const rangeAdded = actualAhDelivered * 2.8;
   const finalRange = params.currentRangeKm + rangeAdded;
   const energykWh = (actualAhDelivered * 73.6) / 1000;
-  const cost = energykWh * 2.88;
+  const cost = energykWh * 15.00;
   
   return { energykWh, timeMin: targetMin, finalSOC, finalRange, cost };
 }
 
 function calculateFromAmount(targetRupees) {
-  const energykWh = targetRupees / 2.88;
+  const energykWh = targetRupees / 15.00;
   const ahDelivered = (energykWh * 1000) / 73.6;
   const finalAh = Math.min(params.currentAh + ahDelivered, params.maxCapacityAh * 0.9);
   const actualAhDelivered = finalAh - params.currentAh;
@@ -86,7 +86,7 @@ function calculateFromAmount(targetRupees) {
   const rangeAdded = actualAhDelivered * 2.8;
   const finalRange = params.currentRangeKm + rangeAdded;
   const actualEnergy = (actualAhDelivered * 73.6) / 1000;
-  const actualCost = actualEnergy * 2.88;
+  const actualCost = actualEnergy * 15.00;
   const timeMin = (actualAhDelivered / params.chargingCurrent) * 60;
   
   return { energykWh: actualEnergy, timeMin, finalSOC, finalRange, cost: actualCost };
@@ -105,7 +105,7 @@ function calculateFull() {
   const finalRange = params.currentRangeKm + rangeAdded;
   const energykWh = (ahNeeded * 73.6) / 1000;
   const timeMin = (ahNeeded / params.chargingCurrent) * 60;
-  const cost = energykWh * 2.88;
+  const cost = energykWh * 15.00;
   
   return { energykWh, timeMin, finalSOC, finalRange, cost };
 }

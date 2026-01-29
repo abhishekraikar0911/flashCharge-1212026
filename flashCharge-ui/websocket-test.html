@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebSocket Test</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #0f172a; color: #fff; }
+    #log { background: #1e293b; padding: 15px; border-radius: 8px; height: 400px; overflow-y: auto; }
+    .msg { margin: 5px 0; padding: 5px; border-left: 3px solid #3b82f6; }
+    .success { border-color: #10b981; }
+    .error { border-color: #ef4444; }
+    button { padding: 10px 20px; margin: 10px 5px 0 0; background: #3b82f6; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h2>⚡ WebSocket Real-Time Test</h2>
+  <button onclick="connect()">Connect</button>
+  <button onclick="disconnect()">Disconnect</button>
+  <button onclick="clearLog()">Clear Log</button>
+  <div id="log"></div>
+
+  <script>
+    let ws = null;
+    const log = document.getElementById('log');
+    
+    function addLog(msg, type = '') {
+      const div = document.createElement('div');
+      div.className = 'msg ' + type;
+      div.textContent = new Date().toLocaleTimeString() + ' - ' + msg;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+    
+    function connect() {
+      if (ws) {
+        addLog('Already connected', 'error');
+        return;
+      }
+      
+      const wsUrl = `ws://${window.location.host}/ws?charger=RIVOT_100A_01`;
+      addLog('Connecting to: ' + wsUrl);
+      
+      ws = new WebSocket(wsUrl);
+      
+      ws.onopen = () => {
+        addLog('✅ WebSocket connected!', 'success');
+      };
+      
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        addLog('📨 Received: ' + JSON.stringify(data, null, 2), 'success');
+      };
+      
+      ws.onerror = (error) => {
+        addLog('❌ Error: ' + error, 'error');
+      };
+      
+      ws.onclose = () => {
+        addLog('🔌 WebSocket closed');
+        ws = null;
+      };
+    }
+    
+    function disconnect() {
+      if (ws) {
+        ws.close();
+        addLog('Disconnecting...');
+      } else {
+        addLog('Not connected', 'error');
+      }
+    }
+    
+    function clearLog() {
+      log.innerHTML = '';
+    }
+    
+    // Auto-connect on load
+    window.onload = () => {
+      addLog('Page loaded. Click Connect to start.');
+    };
+  </script>
+</body>
+</html>

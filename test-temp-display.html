@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Temperature Display Test</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #020617; color: #fff; }
+    .test-box { background: rgba(255,255,255,0.1); padding: 20px; margin: 10px 0; border-radius: 8px; }
+    .info-value { color: #f59e0b; font-weight: bold; font-size: 18px; }
+  </style>
+</head>
+<body>
+  <h1>🌡️ Temperature Display Test</h1>
+  
+  <div class="test-box">
+    <h3>Test 1: Direct HTML</h3>
+    <span class="info-value" style="color: #f59e0b;">25.5°C</span>
+  </div>
+  
+  <div class="test-box">
+    <h3>Test 2: JavaScript Update (null)</h3>
+    <span class="info-value" id="temp-test-1" style="color: #f59e0b;">Loading...</span>
+  </div>
+  
+  <div class="test-box">
+    <h3>Test 3: JavaScript Update (with value)</h3>
+    <span class="info-value" id="temp-test-2" style="color: #f59e0b;">Loading...</span>
+  </div>
+  
+  <div class="test-box">
+    <h3>Test 4: JavaScript Update (empty string)</h3>
+    <span class="info-value" id="temp-test-3" style="color: #f59e0b;">Loading...</span>
+  </div>
+  
+  <div class="test-box">
+    <h3>Test 5: Actual API Call</h3>
+    <span class="info-value" id="temp-api" style="color: #f59e0b;">Loading...</span>
+  </div>
+  
+  <script>
+    function updateTemp(elementId, value) {
+      const tempValue = (value !== null && value !== undefined && value !== "") ? value : "--";
+      document.getElementById(elementId).innerText = tempValue;
+    }
+    
+    // Test cases
+    updateTemp('temp-test-1', null);
+    updateTemp('temp-test-2', '28.3°C');
+    updateTemp('temp-test-3', '');
+    
+    // API test
+    fetch('/api/chargers/RIVOT_100A_01/soc')
+      .then(r => r.json())
+      .then(data => {
+        console.log('API Response temperature:', data.temperature);
+        updateTemp('temp-api', data.temperature);
+      })
+      .catch(e => {
+        document.getElementById('temp-api').innerText = 'Error: ' + e.message;
+      });
+  </script>
+</body>
+</html>

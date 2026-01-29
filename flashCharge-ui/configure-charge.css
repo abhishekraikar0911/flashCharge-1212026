@@ -2,14 +2,15 @@
   background: var(--glass);
   backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
-  border-radius: 10px;
-  padding: clamp(10px, 3vw, 14px);
+  border-radius: 16px;
+  padding: clamp(16px, 4.5vw, 20px);
   margin-bottom: 0;
   flex-shrink: 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .config-section.compact {
-  padding: clamp(8px, 2.5vw, 10px);
+  padding: clamp(14px, 4vw, 16px);
 }
 
 .hidden {
@@ -20,28 +21,37 @@
 .vehicle-info-compact {
   display: flex;
   justify-content: space-around;
-  gap: 6px;
+  gap: 10px;
 }
 
 .info-col {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .info-col .label {
-  font-size: clamp(9px, 2.5vw, 11px);
+  font-size: clamp(10px, 2.8vw, 12px);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .info-col .value {
-  font-size: clamp(13px, 4vw, 16px);
+  font-size: clamp(14px, 4.5vw, 18px);
   color: var(--primary);
   font-family: var(--font-tech);
   font-weight: 700;
+  transition: opacity 0.3s ease;
+  min-height: 1.2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info-col .value.updating {
+  opacity: 0.7;
 }
 
 .info-col .value.green {
@@ -52,12 +62,12 @@
 .mode-picker-combined {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .mode-tabs {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -69,18 +79,18 @@
 .mode-tab {
   flex: 1;
   min-width: 70px;
-  padding: clamp(6px, 2vw, 8px) 10px;
+  padding: clamp(10px, 3vw, 12px) 14px;
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px;
+  border-radius: 12px;
   color: var(--primary);
   font-family: var(--font-ui);
-  font-size: clamp(10px, 2.8vw, 12px);
-  font-weight: 600;
+  font-size: clamp(11px, 3vw, 13px);
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
   white-space: nowrap;
 }
 
@@ -88,13 +98,14 @@
   background: var(--primary);
   color: #000;
   border-color: var(--primary);
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.6);
+  font-weight: 800;
 }
 
 /* Horizontal Picker */
 .picker-horizontal {
   position: relative;
-  height: clamp(60px, 18vw, 80px);
+  height: clamp(70px, 20vw, 90px);
   overflow: hidden;
 }
 
@@ -121,7 +132,7 @@
   align-items: center;
   justify-content: center;
   font-family: var(--font-tech);
-  font-size: clamp(16px, 4.5vw, 20px);
+  font-size: clamp(18px, 5vw, 22px);
   color: var(--text-muted);
   scroll-snap-align: center;
   transition: all 0.2s;
@@ -129,7 +140,7 @@
 }
 
 .picker-item.active {
-  font-size: clamp(28px, 8vw, 36px);
+  font-size: clamp(32px, 9vw, 40px);
   color: var(--primary);
   font-weight: 900;
   text-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
@@ -163,48 +174,62 @@
 .summary-compact {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
 }
 
 .summary-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 10px;
+  gap: 8px;
+  padding: 12px;
   background: rgba(59, 130, 246, 0.05);
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .summary-item.highlight {
   grid-column: 1 / -1;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(59, 130, 246, 0.1));
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.15));
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
 }
 
 .sum-label {
-  font-size: clamp(9px, 2.5vw, 11px);
+  font-size: clamp(10px, 2.8vw, 12px);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .sum-value {
-  font-size: clamp(13px, 4vw, 16px);
+  font-size: clamp(14px, 4.5vw, 18px);
   color: var(--text-main);
   font-family: var(--font-tech);
   font-weight: 700;
+  transition: opacity 0.3s ease;
+  min-height: 1.2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sum-value.updating {
+  opacity: 0.7;
 }
 
 .sum-value-big {
-  font-size: clamp(20px, 6vw, 26px);
+  font-size: clamp(24px, 7vw, 30px);
   color: var(--success);
   font-family: var(--font-tech);
   font-weight: 900;
   text-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+  min-height: 1.2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .controls-section {
   margin-top: auto;
-  padding-bottom: 6px;
+  padding-bottom: 8px;
 }

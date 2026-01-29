@@ -32,7 +32,7 @@ module.exports = {
   },
   
   PRICING: {
-    PER_KWH: 2.88,
+    PER_KWH: 15.00,
     CURRENCY: 'INR',
     SYMBOL: '₹'
   },
