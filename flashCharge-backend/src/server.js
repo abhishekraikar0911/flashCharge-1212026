@@ -3,11 +3,11 @@ const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 
-const chargersRoutes = require("./routes/chargers");
-const transactionsRoutes = require("./routes/transactions");
-const authRoutes = require("./routes/auth");
-const prepaidRoutes = require("./routes/prepaid");
-const firmwareRoutes = require("./routes/firmware");
+const chargersRoutes = require("./routes/chargers.routes");
+const transactionsRoutes = require("./routes/transactions.routes");
+const authRoutes = require("./routes/auth.routes");
+const prepaidRoutes = require("./routes/prepaid.routes");
+const firmwareRoutes = require("./routes/firmware.routes");
 const { getStats } = require('./services/websocket');
 
 const app = express();
